@@ -259,3 +259,4 @@ jüngste Eintrag.
   Zeile- Punkt einsDritte“). Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: B → `**Dritte**`, Rechts →
   `-> **Dritte**`, B → `-> Dritte`, Markierung „Erste“ + B → `**Erste** Zeile`, Mitte in Listenzeile →
   `<-> - Punkt eins`, Enter → neue Zeile `<-> - `; Darstellung mit `<b>` und `text-align`. Schritte 6 und 7 stehen aus.
+- **Fassung 2.26, 2026-09-07 (Rücknahme):** Fett und Ausrichtung je Zeile (2.25) wieder entfernt; Listen, Nummern, Überschriften, Enter-Fortsetzung und der S9-Fix bleiben. Schritte 2, 3, 4 grün, Schritt 5 per Ereignis: Enter in „- eins“ → „- “, Enter in „1. a“ → „2. “, B wirkt aufs Element. Schritte 6 und 7 stehen aus.
