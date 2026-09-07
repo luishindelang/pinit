@@ -236,3 +236,8 @@ jüngste Eintrag.
   `TEXTAREA`, und die zwei Auswahllisten (`frame-layout`, `widget-variant`) stoppen `keydown` wie alle
   anderen Inspektor-Felder. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: Auswahlliste fokussiert,
   Backspace → Element bleibt, „s“ → Werkzeug bleibt Auswählen. Schritte 6 und 7 stehen aus.
+- **Fassung 2.22, 2026-09-07 (Griffe vorn):** die acht Größen-Griffe liegen nicht mehr im Knoten
+  (dessen `overflow: hidden` schnitt sie ab und der Auswahl-Ring lag davor), sondern in einer eigenen
+  Ebene `.grips` in `#layer` (z-index 8000), mittig auf dem Ring. Schritte 2, 3, 4 grün. Schritt 5 per
+  Ereignis: `elementFromPoint` auf dem Griff liefert den Griff; Ecke ziehen ändert die Größe
+  (168×66 → 240×96), Verschieben nimmt die Griff-Ebene mit. Schritte 6 und 7 stehen aus.

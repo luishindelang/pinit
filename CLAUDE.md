@@ -213,7 +213,7 @@ Das native `dblclick` bleibt als zweiter Weg drin und läuft über dieselbe Funk
 (gleiches oder höheres `z`) — so wird eine große Notiz „nach hinten“ zum Träger für das, was darauf
 liegt. `Alt` beim Anfassen bewegt nur das Element selbst. Kein Gruppen-Feld in der Datenbank: die
 Zugehörigkeit wird beim `mousedown` aus der Geometrie berechnet (`mitnehmer()`), die Kinder stehen
-in `drag.kinder` und werden beim `mouseup` einzeln gespeichert. Mausrad zoomt, Umschalt+Mausrad schiebt waagerecht, Strg+Mausrad senkrecht (2.19). Ecke ziehen ändert die Größe. Reiter: `+` legt
+in `drag.kinder` und werden beim `mouseup` einzeln gespeichert. Mausrad zoomt, Umschalt+Mausrad schiebt waagerecht, Strg+Mausrad senkrecht (2.19). Ecke oder Seite ziehen ändert die Größe (acht Griffe; seit 2.22 in einer eigenen Ebene `.grips` über allen Knoten, `griffeSetzen()`/`griffeVon()` schieben sie beim Ziehen mit). Reiter: `+` legt
 an (Name wird direkt getippt), Doppelklick benennt um, `×` am aktiven Reiter löscht
 zweistufig. Der Auffang-Reiter „Unsortiert“ ist gestrichelt abgesetzt und kursiv, lässt sich
 nicht umbenennen, nicht löschen, und **auf ihm kann nichts angelegt werden** — er ist eine
@@ -454,7 +454,8 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
 
   **Ausführungs-Nachweise** (das Protokoll je Fassung) stehen in
   `artefakte/NACHWEISE-2026-09-07.md` — dort **fortschreiben**, hier steht nur der jüngste:
-  - **Fassung 2.21, 2026-09-07 (F2 der Prüfliste):** der Tastatur-Wächter kennt jetzt `SELECT` und
-    `TEXTAREA`, und die zwei Auswahllisten (`frame-layout`, `widget-variant`) stoppen `keydown` wie alle
-    anderen Inspektor-Felder. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: Auswahlliste fokussiert,
-    Backspace → Element bleibt, „s“ → Werkzeug bleibt Auswählen. Schritte 6 und 7 stehen aus.
+  - **Fassung 2.22, 2026-09-07 (Griffe vorn):** die acht Größen-Griffe liegen nicht mehr im Knoten
+    (dessen `overflow: hidden` schnitt sie ab und der Auswahl-Ring lag davor), sondern in einer eigenen
+    Ebene `.grips` in `#layer` (z-index 8000), mittig auf dem Ring. Schritte 2, 3, 4 grün. Schritt 5 per
+    Ereignis: `elementFromPoint` auf dem Griff liefert den Griff; Ecke ziehen ändert die Größe
+    (168×66 → 240×96), Verschieben nimmt die Griff-Ebene mit. Schritte 6 und 7 stehen aus.
