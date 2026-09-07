@@ -23,6 +23,7 @@
 
     /* Knoten-Füllungen: Schlüssel -> Füllung / Kontur, Text immer --node-ink */
     --node-ink: #172230;
+    --papier: rgba(23,34,48,.14);   /* Linien und Lochband der Notiz (2.23) */
     --f-slate: #dde5ec;  --s-slate: #9fb0c0;
     --f-amber: #f6e2b0;  --s-amber: #d3ab5c;
     --f-mint:  #c7e5d6;  --s-mint:  #7cb69b;
@@ -80,6 +81,7 @@
       --r-violet: #d6c2ff; --r-lilac: #d6c2ff;  --r-sky: #ffb366;      --r-teal: #ffb366;
       --r-mint: #ffcc66;   --r-lime: #ffcc66;
       --node-ink-plain: #e6ecf2;
+      --papier: rgba(255,255,255,.16);
     }
   }
   :root[data-theme="dark"] {
@@ -119,6 +121,7 @@
     --r-violet: #d6c2ff; --r-lilac: #d6c2ff;  --r-sky: #ffb366;      --r-teal: #ffb366;
     --r-mint: #ffcc66;   --r-lime: #ffcc66;
     --node-ink-plain: #e6ecf2;
+    --papier: rgba(255,255,255,.16);
   }
 
   * { box-sizing: border-box; }
@@ -348,19 +351,27 @@
   .node.link-target { box-shadow: 0 0 0 2px var(--accent); }
 
   .node.box { border-radius: 4px; border: 1.5px solid; }
-  /* Notiz (2.18): Zettel mit Klebestreifen oben und Eselsohr unten rechts. */
-  .node.sticky { border-radius: 2px; border: none; padding-top: 16px; box-shadow: 2px 3px 0 rgba(23,34,48,.13), var(--shadow-sm); }
+  /* Notizblock (2.23): Rand wie die anderen Bauarten, oben ein Lochband (abgerissene Blockseite),
+     darunter Papierlinien im Zeilenabstand des Texts (1.35em, Ursprung = Inhaltskante, darum
+     laufen sie mit dem Schriftgrad mit — renderNodes setzt die Schrift auch am Knoten), Eselsohr
+     unten rechts. Die Fuellung wird per backgroundColor gesetzt, damit die Linien bleiben. */
+  .node.sticky {
+    border-radius: 4px; border: 1.5px solid; padding: 26px 12px 12px;
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.35em - 1px), var(--papier) calc(1.35em - 1px), var(--papier) 1.35em);
+    background-origin: content-box; background-clip: padding-box;
+  }
   .node.sticky::before {
-    content: ""; position: absolute; left: 50%; top: -3px; width: 44px; height: 12px; margin-left: -22px;
-    background: rgba(255,255,255,.55); border: 1px solid rgba(23,34,48,.12); transform: rotate(-2deg);
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 18px;
+    background: radial-gradient(circle at 50% 50%, var(--ground) 2.2px, transparent 3px) 8px 0 / 18px 100% repeat-x;
+    border-bottom: 1px dashed var(--papier); box-shadow: inset 0 -12px 12px -12px var(--papier);
     pointer-events: none;
   }
   .node.sticky::after {
-    content: ""; position: absolute; right: 0; bottom: 0; width: 20px; height: 20px;
-    background: linear-gradient(135deg, transparent 50%, rgba(23,34,48,.14) 50%, rgba(23,34,48,.06) 100%);
+    content: ""; position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
+    background: linear-gradient(135deg, transparent 50%, var(--papier) 50%, transparent 100%);
     pointer-events: none;
   }
-  .node.sticky.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)), 2px 3px 0 rgba(23,34,48,.13); }
+  .node.sticky .txt { position: relative; }
   .node.diamond { border: none; background: none !important; box-shadow: none; padding: 0; }
   /* width/height muessen explizit sein: ein <svg> ist ein ersetztes Element und
      dehnt sich mit inset:0 allein NICHT, es behaelt seine Eigengroesse. */
@@ -376,9 +387,13 @@
     color: var(--ink);
   }
   .node.text.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)); }
-  /* Stichpunkte: eine Zeile je Block, Punktzeilen mit haengendem Einzug. */
+  /* Zeilen-Formate (2.23): eine Zeile je Block. Punkt- und Nummernzeilen mit haengendem Einzug,
+     Ueberschriften "# " und "## " groesser und fett — alles aus dem rohen Text (zeilenArt). */
   .node .txt .zl { display: block; min-height: 1.35em; }
   .node .txt .li { display: block; padding-left: 1.1em; text-indent: -1.1em; text-align: left; }
+  .node .txt .ol { display: block; padding-left: 1.5em; text-indent: -1.5em; text-align: left; }
+  .node .txt .h1 { font-size: 1.3em; font-weight: 700; line-height: 1.25; margin: .1em 0 .15em; }
+  .node .txt .h2 { font-size: 1.12em; font-weight: 700; line-height: 1.3; margin: .1em 0 .1em; }
   /* Tabelle: Titelzeile (.txt) oben, darunter das Gitter. Erste Zeile ist die Kopfzeile. */
   .node.table {
     border-radius: 4px; border: 1.5px solid; padding: 0;
@@ -1037,7 +1052,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.22";
+  var FASSUNG = "2.23";
   var FASSUNG_DATUM = "2026-09-07";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1046,7 +1061,7 @@
   // wieder normal stellen koennen muss: 0 = Vorgabe, 1 = fett, 2 = normal.
   var KINDS = {
     box:     { w: 168, h: 66,  color: "slate", label: "Schritt",      fs: 13, bold: false, align: "center" },
-    sticky:  { w: 148, h: 128, color: "amber", label: "Notiz",        fs: 13, bold: false, align: "center" },
+    sticky:  { w: 148, h: 128, color: "amber", label: "Notiz",        fs: 13, bold: false, align: "left" },
     diamond: { w: 158, h: 100, color: "mint",  label: "Entscheidung", fs: 13, bold: false, align: "center" },
     text:    { w: 220, h: 34,  color: "plain", label: "Beschriftung", fs: 17, bold: true,  align: "left" },
     // Tabelle (seit 2.3): `text` ist die Ueberschrift, die Zellen liegen in `cells`
@@ -1072,7 +1087,7 @@
   // Spalten-Layouts mit festem Kopf, Start/Ende haben keinen Text.
   var VALIGNS = ["top", "middle", "bottom"];
   function valignLesen(v) { return VALIGNS.indexOf(v) >= 0 ? v : ""; }
-  function senkrecht(n) { return n.valign || "middle"; }
+  function senkrecht(n) { return n.valign || (n.kind === "sticky" ? "top" : "middle"); }
   function senkrechtMoeglich(n) {
     return !(n.kind === "table" || n.kind === "entity" || n.kind === "frame" || ohneText(n) ||
       (n.kind === "widget" && (n.variant === "list" || n.variant === "menu")));
@@ -1745,18 +1760,65 @@
   // haengendem Einzug gezeigt. Gespeichert bleibt der rohe Text (beginEdit setzt ihn
   // vor dem Tippen wieder ein) — so bleibt das Datenschema reiner Text.
   var LI = /^\s*[-*\u2022]\s+(.*)$/;
+  var OL = /^\s*(\d+)[.)]\s+(.*)$/;
+  var UE = /^\s*(#{1,2})\s+(.*)$/;
+  // Zeilenart aus dem rohen Text (2.23): li (Punkt), ol (Nummer), h1/h2 (Ueberschrift) oder "".
+  // Der Text bleibt roh gespeichert — Markdown-Zeilen, die Claude ohnehin lesen kann.
+  function zeilenArt(z) {
+    var m;
+    if ((m = LI.exec(z))) return { art: "li", rest: m[1] };
+    if ((m = OL.exec(z))) return { art: "ol", rest: m[2], nr: m[1] };
+    if ((m = UE.exec(z))) return { art: m[1].length === 1 ? "h1" : "h2", rest: m[2] };
+    return { art: "", rest: z };
+  }
   function textFuellen(t, text, immerZeilen) {
     var zeilen = (text || "").split("\n");
-    var hat = immerZeilen || zeilen.some(function (z) { return LI.test(z); });
+    var hat = immerZeilen || zeilen.some(function (z) { return zeilenArt(z).art !== ""; });
     if (!hat) { t.textContent = text; return; }
     while (t.firstChild) t.removeChild(t.firstChild);
     zeilen.forEach(function (z) {
       var d = document.createElement("span");
-      var m = LI.exec(z);
-      if (m) { d.className = "zl li"; d.textContent = "\u2022 " + m[1]; }
+      var a = zeilenArt(z);
+      if (a.art === "li") { d.className = "zl li"; d.textContent = "\u2022 " + a.rest; }
+      else if (a.art === "ol") { d.className = "zl ol"; d.textContent = a.nr + ". " + a.rest; }
+      else if (a.art) { d.className = "zl " + a.art; d.textContent = a.rest; }
       else { d.className = "zl"; d.textContent = z; }
       t.appendChild(d);
     });
+  }
+  // Enter in einer Listen-Zeile (2.23): setzt die Liste fort ("- " bzw. naechste Nummer);
+  // in einer LEEREN Listen-Zeile beendet Enter die Liste (Marker weg, kein Umbruch) — wie in
+  // jedem Schreibprogramm. Rueckgabe true = selbst behandelt, der Browser soll nichts tun.
+  function listeFortsetzen(t) {
+    var s = window.getSelection();
+    if (!s || !s.rangeCount || !s.isCollapsed) return false;
+    var r = s.getRangeAt(0);
+    // Chrome legt in plaintext-only jede weitere Zeile in ein eigenes <div>, die erste liegt
+    // direkt im Feld; range.toString() verschluckt diese Umbrueche. Darum: den Block der
+    // Cursor-Zeile suchen und nur von dessen Anfang bis zum Cursor lesen.
+    var blk = r.startContainer;
+    while (blk !== t && blk.parentNode !== t) blk = blk.parentNode;
+    if (blk === t || blk.nodeType !== 1) blk = t;
+    if (r.startContainer === t && r.startOffset > 0 && t.childNodes[r.startOffset - 1].nodeName === "DIV") blk = t.childNodes[r.startOffset - 1];
+    var vor = document.createRange();
+    vor.selectNodeContents(blk);
+    vor.setEnd(r.startContainer, r.startOffset);
+    var davor = vor.toString();
+    var zeile = davor.slice(davor.lastIndexOf("\n") + 1);
+    var m, rest, neu;
+    if ((m = /^(\s*[-*\u2022]\s+)(.*)$/.exec(zeile))) { rest = m[2]; neu = m[1]; }
+    else if ((m = /^(\s*)(\d+)([.)]\s+)(.*)$/.exec(zeile))) { rest = m[4]; neu = m[1] + (parseInt(m[2], 10) + 1) + m[3]; }
+    else return false;
+    if (rest.trim() === "") {
+      // nur der Marker steht da: rueckwaerts bis zum Zeilenanfang markieren und loeschen
+      if (!s.modify) return false;
+      s.modify("extend", "backward", "lineboundary");
+      if (s.toString() !== zeile) { s.collapseToEnd(); return false; }
+      document.execCommand("delete");
+      return true;
+    }
+    document.execCommand("insertText", false, "\n" + neu);
+    return true;
   }
   // Menue/Reiterleiste: Eintraege mit "|" getrennt, der erste gilt als aktiv.
   function menueFuellen(t, text) {
@@ -1840,7 +1902,9 @@
       } else if (n.kind === "text") {
         el.style.background = "none";
       } else {
-        el.style.background = fillOf(n);
+        // Notiz: nur die Farbe setzen, das Kurzformat "background" wuerde die Papierlinien loeschen.
+        if (n.kind === "sticky") { el.style.backgroundColor = fillOf(n); el.style.fontSize = schriftgrad(n) + "px"; }
+        else el.style.background = fillOf(n);
         el.style.borderColor = "var(--s-" + n.color + ")";
         // Plain-Fuellung ist im Dunkelmodus dunkel — dann helle Schrift, fuer JEDE Bauart (F1 der
         // Pruefliste; bis 2.19 galt das nur fuer box, Rahmen/Code/Tabelle/Baustein waren unlesbar).
@@ -2182,6 +2246,7 @@
     var nw = w ? Math.max(48, Math.round(w)) : d.w;
     var nh = h ? Math.max(30, Math.round(h)) : d.h;
     if (w) { nw = Math.max(48, snap(nw)); nh = Math.max(30, snap(nh)); }
+    if (w && ohneText({ kind: kind })) nh = nw;   // Kreise bleiben Kreise, auch nach Mindestmass und Raster
     var n = {
       kind: kind, x: snap(bx - nw / 2), y: snap(by - nh / 2),
       w: nw, h: nh, text: "", color: d.color, z: topZ() + 1, sheet: activeSheet,
@@ -2258,6 +2323,9 @@
     function onKey(ev) {
       if (ev.key === "Escape") { ev.preventDefault(); finish(false); }
       else if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); finish(true); }
+      else if (ev.key === "Enter" && !ev.shiftKey && nodes.get(id) && nodes.get(id).kind !== "code") {
+        if (listeFortsetzen(t)) ev.preventDefault();
+      }
       ev.stopPropagation();
     }
   }
@@ -2465,6 +2533,13 @@
   });
 
   /* ====================== Vorschau beim Aufziehen ====================== */
+  // Start/Ende werden quadratisch aufgezogen (2.23): die laengere Seite gilt fuer beide,
+  // die Richtung bleibt. Vorschau und Anlegen nutzen denselben Endpunkt (drag.cur).
+  function anlegeEnde(kind, a, b) {
+    if (!ohneText({ kind: kind })) return b;
+    var dx = b.x - a.x, dy = b.y - a.y, q = Math.max(Math.abs(dx), Math.abs(dy));
+    return { x: a.x + (dx < 0 ? -q : q), y: a.y + (dy < 0 ? -q : q) };
+  }
   function vorschauZeigen(a, b) {
     var g = $("neu-vorschau");
     if (!g) {
@@ -2807,8 +2882,8 @@
     var p = toBoard(ev.clientX, ev.clientY);
 
     if (drag.mode === "create") {
-      drag.cur = p;
-      vorschauZeigen(drag.start, p);
+      drag.cur = anlegeEnde(drag.kind, drag.start, p);
+      vorschauZeigen(drag.start, drag.cur);
       return;
     }
     if (drag.mode === "marquee") {
@@ -3564,6 +3639,8 @@
     ["Enter · F2", "Gewähltes Element beschriften (auch: Knopf „Text bearbeiten“ im Inspektor)"],
     ["Griffe ziehen", "Größe ändern an allen Ecken und Seiten; Start/Ende bleiben rund"],
     ["Strg+Enter", "Beschriftung abschließen"],
+    ["Enter in „- “ / „1. “", "Nächster Stichpunkt bzw. nächste Nummer; Enter in leerer Listenzeile beendet die Liste"],
+    ["# · ##", "Zeile als Überschrift (groß / mittel) — Zeilen-Formate gelten in jedem Element"],
     ["Esc", "Beschriftung verwerfen · Auswahl aufheben · Feld schließen"],
     ["Entf / Rücktaste", "Auswahl löschen (Elemente und Pfeile)"],
     ["Strg+D", "Auswahl duplizieren (24 px versetzt)"],

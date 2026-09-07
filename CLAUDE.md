@@ -187,7 +187,7 @@ Doppelklick in eine Zelle tippt sie, `Tab` springt zur nächsten Zelle, `Enter` 
 verwirft; Zeilen und Spalten kommen über vier Knöpfe im Inspektor (`+ Zeile`, `− Zeile`, `+ Spalte`,
 `− Spalte`, immer am Ende). **Seit 2.4** außerdem ein **Inhalts-Textfeld** im Inspektor (`tbl-text`):
 eine Zeile je Tabellenzeile, Spalten mit `|` — der schnelle Weg, eine Tabelle zu füllen
-(`zellenAlsText`/`textAlsZellen`/`commitTblText`). **Stichpunkte** in jedem Element: Zeile mit `- ` beginnen. **Mehrfachauswahl seit 2.0:** mit
+(`zellenAlsText`/`textAlsZellen`/`commitTblText`). **Zeilen-Formate** in jedem Element (2.23, `zeilenArt()`): Zeile mit `- ` = Stichpunkt, `1. ` = Nummer, `# `/`## ` = Überschrift; Enter in einer Listenzeile setzt die Liste fort, Enter in einer leeren Listenzeile beendet sie (`listeFortsetzen()`). Die Notiz ist seit 2.23 ein Notizblock (Lochband, Papierlinien über `--papier`, Text per Vorgabe links oben; die Füllung wird als `backgroundColor` gesetzt, damit die Linien bleiben). Start/Ende werden quadratisch aufgezogen (`anlegeEnde()`). **Mehrfachauswahl seit 2.0:** mit
 `Auswählen` auf leerer Fläche einen Rahmen ziehen — alles, was der Rahmen **berührt**, ist
 gewählt (`selSet` für Elemente, seit 2.2 `selEdges` für Pfeile — ein Pfeil zählt, wenn der Rahmen
 seine gezeichnete Linie berührt, `strichTrifft()`; Sammel-Modus = `mehrfach()`); die Gruppe lässt sich zusammen verschieben, umfärben und löschen, der
@@ -240,9 +240,9 @@ Ablage, kein Arbeitsort. Kein Rückgängig.
   `code` hält reinen Text in Schreibmaschinenschrift (keine Stichpunkt-Deutung), `start`/`end` sind
   Kreise ohne Text (`ohneText()`, Pfeile enden am Ellipsenrand in `border()`) · **`link`** (2.9, bis
   300 Zeichen: Datei, URL, Ticket — im Tooltip, im Inspektor) · **`status`** (2.9: "" | offen | arbeit |
-  fertig, `statusLesen()`; Punkt oben links rot/gelb/grün). **Stichpunkte sind reiner Text:** eine
-  Zeile, die mit `- `, `* ` oder `• ` beginnt, wird nur bei der Anzeige als Punkt gesetzt
-  (`textFuellen()`), gespeichert bleibt die Zeile roh — kein eigenes Feld. Eine Fassung vor 2.3
+  fertig, `statusLesen()`; Punkt oben links rot/gelb/grün). **Zeilen-Formate sind reiner Text:** eine
+  Zeile, die mit `- `, `* ` oder `• ` beginnt, wird nur bei der Anzeige als Punkt gesetzt, `1. ` als
+  Nummer, `# `/`## ` als Überschrift (2.23; `textFuellen()`/`zeilenArt()`), gespeichert bleibt die Zeile roh — kein eigenes Feld. Eine Fassung vor 2.3
   kennt `table` nicht und lässt solche Elemente stumm weg (`if (!KINDS[v.kind]) return`). Alle drei sind **Abweichungen von der Vorgabe der Bauart**,
   nicht der Wert selbst: `fs` 0 = Vorgabe (13 px, bei `text` 17), sonst 1-96 · `bold`
   0 = Vorgabe, 1 = fett, 2 = normal (dreiwertig, weil `text` von Haus aus fett ist und
@@ -454,8 +454,11 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
 
   **Ausführungs-Nachweise** (das Protokoll je Fassung) stehen in
   `artefakte/NACHWEISE-2026-09-07.md` — dort **fortschreiben**, hier steht nur der jüngste:
-  - **Fassung 2.22, 2026-09-07 (Griffe vorn):** die acht Größen-Griffe liegen nicht mehr im Knoten
-    (dessen `overflow: hidden` schnitt sie ab und der Auswahl-Ring lag davor), sondern in einer eigenen
-    Ebene `.grips` in `#layer` (z-index 8000), mittig auf dem Ring. Schritte 2, 3, 4 grün. Schritt 5 per
-    Ereignis: `elementFromPoint` auf dem Griff liefert den Griff; Ecke ziehen ändert die Größe
-    (168×66 → 240×96), Verschieben nimmt die Griff-Ebene mit. Schritte 6 und 7 stehen aus.
+  - **Fassung 2.23, 2026-09-07 (Zeilen-Formate, Notizblock, runde Kreise):** `zeilenArt()` erkennt
+    `- `, `1. `, `# `, `## `; `listeFortsetzen()` setzt bei Enter die Liste fort und beendet sie in
+    einer leeren Listenzeile (Chrome legt in plaintext-only jede Zeile in ein `<div>`, darum Block-Suche
+    statt `range.toString()`). Notiz mit Lochband, Papierlinien (`--papier` in allen drei Farbblöcken),
+    Vorgabe links oben. `anlegeEnde()` macht Start/Ende beim Aufziehen quadratisch. Schritte 2, 3, 4 grün.
+    Schritt 5 per Ereignis: Start 120×50 gezogen → 120×120 (Vorschau und Element); „# Titel“, „- eins“,
+    Enter, „zwei“, Enter, Enter, „1. a“, Enter, „b“ → roh `# Titel\n- eins\n- zwei\n1. a\n2. b`,
+    dargestellt als h1/li/li/ol/ol. Schritte 6 und 7 stehen aus.

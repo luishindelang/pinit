@@ -241,3 +241,11 @@ jüngste Eintrag.
   Ebene `.grips` in `#layer` (z-index 8000), mittig auf dem Ring. Schritte 2, 3, 4 grün. Schritt 5 per
   Ereignis: `elementFromPoint` auf dem Griff liefert den Griff; Ecke ziehen ändert die Größe
   (168×66 → 240×96), Verschieben nimmt die Griff-Ebene mit. Schritte 6 und 7 stehen aus.
+- **Fassung 2.23, 2026-09-07 (Zeilen-Formate, Notizblock, runde Kreise):** `zeilenArt()` erkennt
+  `- `, `1. `, `# `, `## `; `listeFortsetzen()` setzt bei Enter die Liste fort und beendet sie in
+  einer leeren Listenzeile (Chrome legt in plaintext-only jede Zeile in ein `<div>`, darum Block-Suche
+  statt `range.toString()`). Notiz mit Lochband, Papierlinien (`--papier` in allen drei Farbblöcken),
+  Vorgabe links oben. `anlegeEnde()` macht Start/Ende beim Aufziehen quadratisch. Schritte 2, 3, 4 grün.
+  Schritt 5 per Ereignis: Start 120×50 gezogen → 120×120 (Vorschau und Element); „# Titel“, „- eins“,
+  Enter, „zwei“, Enter, Enter, „1. a“, Enter, „b“ → roh `# Titel\n- eins\n- zwei\n1. a\n2. b`,
+  dargestellt als h1/li/li/ol/ol. Schritte 6 und 7 stehen aus.
