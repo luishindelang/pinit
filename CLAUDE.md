@@ -679,3 +679,7 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
     in Flächen-Tinte `var(--ink)`. Schritte 2, 3, 4 grün. Schritt 5 real im Dunkelmodus gemessen: Rahmen-Titel,
     Code, Tabellenzellen, Knopf und Schalter alle `rgb(230,236,242)` auf `rgb(53,66,79)` bzw. transparent.
     Schritte 6 und 7 stehen aus.
+  - **Fassung 2.21, 2026-09-07 (F2 der Prüfliste):** der Tastatur-Wächter kennt jetzt `SELECT` und
+    `TEXTAREA`, und die zwei Auswahllisten (`frame-layout`, `widget-variant`) stoppen `keydown` wie alle
+    anderen Inspektor-Felder. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: Auswahlliste fokussiert,
+    Backspace → Element bleibt, „s“ → Werkzeug bleibt Auswählen. Schritte 6 und 7 stehen aus.

@@ -1038,7 +1038,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.20";
+  var FASSUNG = "2.21";
   var FASSUNG_DATUM = "2026-09-07";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -2947,7 +2947,9 @@
     if (!einstHinter.hidden) { if (ev.key === "Escape") { ev.preventDefault(); einstZeigen(false); } return; }
     if (editing) return;
     var t = ev.target;
-    if (t && (t.tagName === "INPUT" || t.isContentEditable)) return;
+    // Jedes Formularfeld gehoert sich selbst (F2 der Pruefliste: eine fokussierte Auswahlliste
+    // liess Entf/Backspace als Brett-Kuerzel durch und loeschte das Element).
+    if (t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
 
     if (ev.key === "Delete" || ev.key === "Backspace") { ev.preventDefault(); removeSel(); return; }
     if (ev.key === "Escape") { sel = null; selSet.clear(); selEdges.clear(); setTool("select"); render(); return; }
@@ -3332,6 +3334,10 @@
   });
 
   // Layout eines Rahmens: setzt die Groesse einmal, danach ist sie frei.
+  // Tasten in den Auswahllisten bleiben dort (Buchstaben springen in der Liste, nicht zum Werkzeug).
+  ["frame-layout", "widget-variant"].forEach(function (id) {
+    $(id).addEventListener("keydown", function (ev) { ev.stopPropagation(); });
+  });
   $("frame-layout").addEventListener("change", function () {
     if (!sel || sel.type !== "node") return;
     var n = nodes.get(sel.id); if (!n || n.kind !== "frame") return;
