@@ -32,7 +32,7 @@ Ein Artifact kann nur das Konto aktualisieren, das es veröffentlicht hat — Lu
 | | URL | Konto | `capabilities` |
 |---|---|---|---|
 | **Pinit · Allgemein Dashboard** (privat, projektübergreifend, seit 2.12) | `https://claude.ai/code/artifact/f0313815-8831-4ec5-8613-9e28915e7051` | privat | `{db: {}}` |
-| **Pinit** (Luis' erstes Brett, Arbeits-Rechner) | `https://claude.ai/code/artifact/cf961f04-6f2e-41d2-9d5a-eb3a1f8b1a04` | Arbeit | `{db: {}}` |
+| **Pinit** (erstes Brett, Arbeits-Konto — steht NICHT in der privaten `bretter.json`; auf der Arbeit eigene Liste anlegen) | `https://claude.ai/code/artifact/cf961f04-6f2e-41d2-9d5a-eb3a1f8b1a04` | Arbeit | `{db: {}}` |
 
 **Seit 2.11 gibt es keine „Vorlage“ mehr.** Die frühere zweite Veröffentlichung
 „Reißbrett Vorlage“ (`b059cf88-e25b-4460-a703-6a8abf4dd1f5`, `capabilities {}`) wird **nicht
