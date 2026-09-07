@@ -23,7 +23,7 @@
 
     /* Knoten-Füllungen: Schlüssel -> Füllung / Kontur, Text immer --node-ink */
     --node-ink: #172230;
-    --papier: rgba(23,34,48,.14);   /* Linien und Lochband der Notiz (2.23) */
+    --papier: rgba(23,34,48,.09);   /* Linien und Lochband der Notiz (2.23, blasser seit 2.24) */
     --f-slate: #dde5ec;  --s-slate: #9fb0c0;
     --f-amber: #f6e2b0;  --s-amber: #d3ab5c;
     --f-mint:  #c7e5d6;  --s-mint:  #7cb69b;
@@ -81,7 +81,7 @@
       --r-violet: #d6c2ff; --r-lilac: #d6c2ff;  --r-sky: #ffb366;      --r-teal: #ffb366;
       --r-mint: #ffcc66;   --r-lime: #ffcc66;
       --node-ink-plain: #e6ecf2;
-      --papier: rgba(255,255,255,.16);
+      --papier: rgba(255,255,255,.10);
     }
   }
   :root[data-theme="dark"] {
@@ -121,7 +121,7 @@
     --r-violet: #d6c2ff; --r-lilac: #d6c2ff;  --r-sky: #ffb366;      --r-teal: #ffb366;
     --r-mint: #ffcc66;   --r-lime: #ffcc66;
     --node-ink-plain: #e6ecf2;
-    --papier: rgba(255,255,255,.16);
+    --papier: rgba(255,255,255,.10);
   }
 
   * { box-sizing: border-box; }
@@ -351,24 +351,21 @@
   .node.link-target { box-shadow: 0 0 0 2px var(--accent); }
 
   .node.box { border-radius: 4px; border: 1.5px solid; }
-  /* Notizblock (2.23): Rand wie die anderen Bauarten, oben ein Lochband (abgerissene Blockseite),
-     darunter Papierlinien im Zeilenabstand des Texts (1.35em, Ursprung = Inhaltskante, darum
-     laufen sie mit dem Schriftgrad mit — renderNodes setzt die Schrift auch am Knoten), Eselsohr
-     unten rechts. Die Fuellung wird per backgroundColor gesetzt, damit die Linien bleiben. */
+  /* Notizblock (2.23, ruhiger seit 2.24): Rand wie die anderen Bauarten, oben ein Lochband,
+     darunter blasse Papierlinien in jeder zweiten Textzeile (2.7em, Ursprung = Inhaltskante, darum
+     laufen sie mit dem Schriftgrad mit — renderNodes setzt die Schrift auch am Knoten). Die Fuellung wird per backgroundColor gesetzt, damit die Linien bleiben. */
   .node.sticky {
     border-radius: 4px; border: 1.5px solid; padding: 26px 12px 12px;
-    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.35em - 1px), var(--papier) calc(1.35em - 1px), var(--papier) 1.35em);
-    background-origin: content-box; background-clip: padding-box;
+  }
+  /* Papierlinien als eigene Ebene unter dem Lochband, volle Breite, jede zweite Textzeile (2.24). */
+  .node.sticky::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 26px; bottom: 0; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2.7em - 1px), var(--papier) calc(2.7em - 1px), var(--papier) 2.7em);
   }
   .node.sticky::before {
     content: ""; position: absolute; left: 0; right: 0; top: 0; height: 18px;
     background: radial-gradient(circle at 50% 50%, var(--ground) 2.2px, transparent 3px) 8px 0 / 18px 100% repeat-x;
-    border-bottom: 1px dashed var(--papier); box-shadow: inset 0 -12px 12px -12px var(--papier);
-    pointer-events: none;
-  }
-  .node.sticky::after {
-    content: ""; position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
-    background: linear-gradient(135deg, transparent 50%, var(--papier) 50%, transparent 100%);
+    border-bottom: 1px dashed var(--papier);
     pointer-events: none;
   }
   .node.sticky .txt { position: relative; }
@@ -1052,7 +1049,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.23";
+  var FASSUNG = "2.24";
   var FASSUNG_DATUM = "2026-09-07";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
