@@ -1,0 +1,28 @@
+# Projekt-.gitignore (von projekt-erstellen.js gestanzt) — haelt schwere/binaere Build-Artefakte
+# aus der lokalen Git-Historie. WICHTIG: Groesse kann gitignore NICHT filtern -> der Groessen-Guard
+# in commit.js (Abbruch >= 1 MB) ist das eigentliche Netz. Hier bei Bedarf stack-spezifisch ergaenzen;
+# ein bewusst getracktes Binaer-Tool per Negation zulassen, z. B.:  !tools/IntuneWinAppUtil.exe
+
+# Installer / Pakete / Archive / Binaries
+*.exe
+*.msi
+*.intunewin
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.dmg
+*.pkg
+*.apk
+*.aab
+*.appx
+*.msix
+*.iso
+*.bin
+
+# Build-/Ausgabe-Ordner
+build/
+dist/
+out/
+release/
