@@ -1049,7 +1049,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.24";
+  var FASSUNG = "2.25";
   var FASSUNG_DATUM = "2026-09-07";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1761,56 +1761,124 @@
   var UE = /^\s*(#{1,2})\s+(.*)$/;
   // Zeilenart aus dem rohen Text (2.23): li (Punkt), ol (Nummer), h1/h2 (Ueberschrift) oder "".
   // Der Text bleibt roh gespeichert — Markdown-Zeilen, die Claude ohnehin lesen kann.
+  // Ausrichtung je Zeile (2.25): Praefix "<- " links, "<-> " mittig, "-> " rechts — vor dem
+  // Listen-/Ueberschrift-Marker. Fett im Text: **so** (auch mitten in der Zeile).
+  var AUS = /^(<->|->|<-)\s(.*)$/;
+  var AUS_MARKER = { left: "<- ", center: "<-> ", right: "-> " };
+  var FETT = /\*\*([^*]+)\*\*/;
   function zeilenArt(z) {
-    var m;
-    if ((m = LI.exec(z))) return { art: "li", rest: m[1] };
-    if ((m = OL.exec(z))) return { art: "ol", rest: m[2], nr: m[1] };
-    if ((m = UE.exec(z))) return { art: m[1].length === 1 ? "h1" : "h2", rest: m[2] };
-    return { art: "", rest: z };
+    var m, aus = "";
+    if ((m = AUS.exec(z))) { aus = m[1] === "<-" ? "left" : m[1] === "->" ? "right" : "center"; z = m[2]; }
+    if ((m = LI.exec(z))) return { art: "li", rest: m[1], aus: aus, kopf: z.slice(0, z.length - m[1].length) };
+    if ((m = OL.exec(z))) return { art: "ol", rest: m[2], nr: m[1], aus: aus, kopf: z.slice(0, z.length - m[2].length) };
+    if ((m = UE.exec(z))) return { art: m[1].length === 1 ? "h1" : "h2", rest: m[2], aus: aus, kopf: z.slice(0, z.length - m[2].length) };
+    return { art: "", rest: z, aus: aus, kopf: "" };
+  }
+  // Text mit **fett**-Spannen in ein Element fuellen; ohne Marker schlicht als Text.
+  function inlineFuellen(d, text) {
+    if (!FETT.test(text)) { d.textContent = text; return; }
+    var teile = text.split(/(\*\*[^*]+\*\*)/);
+    teile.forEach(function (p) {
+      if (!p) return;
+      var m = /^\*\*([^*]+)\*\*$/.exec(p);
+      if (m) { var b = document.createElement("b"); b.textContent = m[1]; d.appendChild(b); }
+      else d.appendChild(document.createTextNode(p));
+    });
   }
   function textFuellen(t, text, immerZeilen) {
     var zeilen = (text || "").split("\n");
-    var hat = immerZeilen || zeilen.some(function (z) { return zeilenArt(z).art !== ""; });
+    var hat = immerZeilen || zeilen.some(function (z) { var a = zeilenArt(z); return a.art !== "" || a.aus !== "" || FETT.test(z); });
     if (!hat) { t.textContent = text; return; }
     while (t.firstChild) t.removeChild(t.firstChild);
     zeilen.forEach(function (z) {
       var d = document.createElement("span");
       var a = zeilenArt(z);
-      if (a.art === "li") { d.className = "zl li"; d.textContent = "\u2022 " + a.rest; }
-      else if (a.art === "ol") { d.className = "zl ol"; d.textContent = a.nr + ". " + a.rest; }
-      else if (a.art) { d.className = "zl " + a.art; d.textContent = a.rest; }
-      else { d.className = "zl"; d.textContent = z; }
+      if (a.art === "li") { d.className = "zl li"; inlineFuellen(d, "\u2022 " + a.rest); }
+      else if (a.art === "ol") { d.className = "zl ol"; inlineFuellen(d, a.nr + ". " + a.rest); }
+      else if (a.art) { d.className = "zl " + a.art; inlineFuellen(d, a.rest); }
+      else { d.className = "zl"; inlineFuellen(d, a.rest); }
+      if (a.aus) d.style.textAlign = a.aus;
       t.appendChild(d);
     });
+  }
+  // Der Block (die Zeile) unter dem Cursor im offenen Textfeld (2.25, aus listeFortsetzen
+  // herausgeloest). Chrome legt in plaintext-only jede weitere Zeile in ein eigenes <div>, die
+  // erste liegt direkt im Feld. Liefert { blk, bereich (Range ueber die ganze Zeile), zeile (Text) }.
+  function cursorZeile(t) {
+    var s = window.getSelection();
+    if (!s || !s.rangeCount) return null;
+    var r = s.getRangeAt(0);
+    if (!t.contains(r.startContainer)) return null;
+    var blk = r.startContainer;
+    while (blk !== t && blk.parentNode !== t) blk = blk.parentNode;
+    if (blk === t || blk.nodeType !== 1) blk = t;
+    if (r.startContainer === t && r.startOffset > 0 && t.childNodes[r.startOffset - 1].nodeName === "DIV") blk = t.childNodes[r.startOffset - 1];
+    var bereich = document.createRange();
+    if (blk === t) {
+      // erste Zeile: alles vor dem ersten <div>
+      var ende = t.childNodes.length;
+      for (var i = 0; i < t.childNodes.length; i++) if (t.childNodes[i].nodeName === "DIV") { ende = i; break; }
+      bereich.setStart(t, 0); bereich.setEnd(t, ende);
+    } else bereich.selectNodeContents(blk);
+    var zeile = bereich.toString();
+    return { blk: blk, bereich: bereich, zeile: zeile.slice(zeile.lastIndexOf("\n") + 1), sel: s, r: r };
+  }
+  // Ganze Cursor-Zeile durch neuen Text ersetzen (ueber insertText, damit der Browser den
+  // Umbau selbst macht und das Feld offen bleibt).
+  function zeileErsetzen(t, cz, neu) {
+    cz.sel.removeAllRanges(); cz.sel.addRange(cz.bereich);
+    document.execCommand("insertText", false, neu);
+  }
+  // Knopf im Inspektor waehrend des Tippens (2.25): wirkt auf die Cursor-Zeile bzw. die
+  // Markierung, nicht auf das Element. was = "bold" | "left" | "center" | "right".
+  // Rueckgabe true = im Feld erledigt; false = kein offenes Feld, Aufrufer nimmt das Element.
+  function zeileFormatieren(was) {
+    if (!editing || editing.zelle || !editing.el || document.activeElement !== editing.el) return false;
+    var t = editing.el, cz = cursorZeile(t);
+    if (!cz) return true;
+    if (was === "bold") {
+      var s = cz.sel, txt = s.toString();
+      if (!s.isCollapsed && txt && txt.indexOf("\n") < 0) {
+        // Markierung: **…** drumherum bzw. wieder weg
+        var m = /^\*\*([^*]+)\*\*$/.exec(txt);
+        document.execCommand("insertText", false, m ? m[1] : "**" + txt + "**");
+        return true;
+      }
+      var a = zeilenArt(cz.zeile), rest = a.rest;
+      var fettGanz = /^\*\*([^*]+)\*\*$/.exec(rest);
+      rest = fettGanz ? fettGanz[1] : (rest.trim() ? "**" + rest + "**" : rest);
+      zeileErsetzen(t, cz, (a.aus ? AUS_MARKER[a.aus] : "") + a.kopf + rest);
+      return true;
+    }
+    var b = zeilenArt(cz.zeile);
+    var n = nodes.get(editing.id);
+    var marker = n && ausricht(n) === was ? "" : AUS_MARKER[was];   // Vorgabe des Elements = kein Marker
+    zeileErsetzen(t, cz, marker + b.kopf + b.rest);
+    return true;
   }
   // Enter in einer Listen-Zeile (2.23): setzt die Liste fort ("- " bzw. naechste Nummer);
   // in einer LEEREN Listen-Zeile beendet Enter die Liste (Marker weg, kein Umbruch) — wie in
   // jedem Schreibprogramm. Rueckgabe true = selbst behandelt, der Browser soll nichts tun.
   function listeFortsetzen(t) {
-    var s = window.getSelection();
-    if (!s || !s.rangeCount || !s.isCollapsed) return false;
-    var r = s.getRangeAt(0);
-    // Chrome legt in plaintext-only jede weitere Zeile in ein eigenes <div>, die erste liegt
-    // direkt im Feld; range.toString() verschluckt diese Umbrueche. Darum: den Block der
-    // Cursor-Zeile suchen und nur von dessen Anfang bis zum Cursor lesen.
-    var blk = r.startContainer;
-    while (blk !== t && blk.parentNode !== t) blk = blk.parentNode;
-    if (blk === t || blk.nodeType !== 1) blk = t;
-    if (r.startContainer === t && r.startOffset > 0 && t.childNodes[r.startOffset - 1].nodeName === "DIV") blk = t.childNodes[r.startOffset - 1];
+    var cz = cursorZeile(t);
+    if (!cz || !cz.sel.isCollapsed) return false;
+    var s = cz.sel, r = cz.r;
+    // nur der Teil der Zeile VOR dem Cursor zaehlt
     var vor = document.createRange();
-    vor.selectNodeContents(blk);
+    vor.setStart(cz.bereich.startContainer, cz.bereich.startOffset);
     vor.setEnd(r.startContainer, r.startOffset);
     var davor = vor.toString();
     var zeile = davor.slice(davor.lastIndexOf("\n") + 1);
-    var m, rest, neu;
-    if ((m = /^(\s*[-*\u2022]\s+)(.*)$/.exec(zeile))) { rest = m[2]; neu = m[1]; }
-    else if ((m = /^(\s*)(\d+)([.)]\s+)(.*)$/.exec(zeile))) { rest = m[4]; neu = m[1] + (parseInt(m[2], 10) + 1) + m[3]; }
+    var m, rest, neu, ausM = "";
+    if ((m = AUS.exec(zeile))) { ausM = m[1] + " "; zeile = m[2]; }   // Ausrichtung wandert mit in die naechste Zeile
+    if ((m = /^(\s*[-*\u2022]\s+)(.*)$/.exec(zeile))) { rest = m[2]; neu = ausM + m[1]; }
+    else if ((m = /^(\s*)(\d+)([.)]\s+)(.*)$/.exec(zeile))) { rest = m[4]; neu = ausM + m[1] + (parseInt(m[2], 10) + 1) + m[3]; }
     else return false;
     if (rest.trim() === "") {
       // nur der Marker steht da: rueckwaerts bis zum Zeilenanfang markieren und loeschen
       if (!s.modify) return false;
       s.modify("extend", "backward", "lineboundary");
-      if (s.toString() !== zeile) { s.collapseToEnd(); return false; }
+      if (s.toString() !== ausM + zeile) { s.collapseToEnd(); return false; }
       document.execCommand("delete");
       return true;
     }
@@ -2273,9 +2341,12 @@
     var el = layer.querySelector('.node[data-id="' + id + '"]');
     if (!el) return;
     var n = nodes.get(id);
+    var t = el.querySelector(".txt");
+    // t MUSS vor dem Merker stehen: bis 2.24 stand es dahinter, editing.el war damit immer
+    // undefined — der Wächter in renderNodes lief nie, und ein Neuaufbau während des Tippens
+    // las den Text aus einem abgehängten Feld (innerText ohne Umbrüche). (Prüfliste, 2.25)
     editing = { id: id, before: n.text, el: t, finish: finish };
     el.classList.add("editing");
-    var t = el.querySelector(".txt");
     t.textContent = n.text;   // roh, ohne Stichpunkt-Darstellung
     t.contentEditable = "plaintext-only";
     if (t.contentEditable !== "plaintext-only") t.contentEditable = "true";
@@ -2323,6 +2394,7 @@
       else if (ev.key === "Enter" && !ev.shiftKey && nodes.get(id) && nodes.get(id).kind !== "code") {
         if (listeFortsetzen(t)) ev.preventDefault();
       }
+      else if ((ev.ctrlKey || ev.metaKey) && (ev.key === "b" || ev.key === "B")) { ev.preventDefault(); zeileFormatieren("bold"); }
       ev.stopPropagation();
     }
   }
@@ -2658,11 +2730,18 @@
   $("fs-plus").addEventListener("click", function () {
     textAendern(function (n) { n.fs = gradStufe(schriftgrad(n), 1); });
   });
+  // Waehrend des Tippens (2.25): mousedown darf den Fokus nicht aus dem Feld holen (sonst
+  // schliesst Blur das Tippen, bevor der Klick ankommt), und der Klick trifft nur die Zeile.
+  ["t-bold", "al-left", "al-center", "al-right"].forEach(function (id) {
+    $(id).addEventListener("mousedown", function (ev) { if (editing && !editing.zelle) ev.preventDefault(); });
+  });
   $("t-bold").addEventListener("click", function () {
+    if (zeileFormatieren("bold")) return;
     textAendern(function (n) { n.bold = fett(n) ? 2 : 1; });
   });
   ["left", "center", "right"].forEach(function (a) {
     $("al-" + a).addEventListener("click", function () {
+      if (zeileFormatieren(a)) return;
       textAendern(function (n) { n.align = a; });
     });
   });
@@ -3638,6 +3717,8 @@
     ["Strg+Enter", "Beschriftung abschließen"],
     ["Enter in „- “ / „1. “", "Nächster Stichpunkt bzw. nächste Nummer; Enter in leerer Listenzeile beendet die Liste"],
     ["# · ##", "Zeile als Überschrift (groß / mittel) — Zeilen-Formate gelten in jedem Element"],
+    ["**fett** · Strg+B", "Fett im Text; beim Tippen wirken B und die Ausrichtungs-Knöpfe nur auf die Zeile (Markierung bei B)"],
+    ["<- · <-> · ->", "Zeile links / mittig / rechts (Marker am Zeilenanfang; die Knöpfe setzen ihn beim Tippen)"],
     ["Esc", "Beschriftung verwerfen · Auswahl aufheben · Feld schließen"],
     ["Entf / Rücktaste", "Auswahl löschen (Elemente und Pfeile)"],
     ["Strg+D", "Auswahl duplizieren (24 px versetzt)"],

@@ -187,7 +187,7 @@ Doppelklick in eine Zelle tippt sie, `Tab` springt zur nächsten Zelle, `Enter` 
 verwirft; Zeilen und Spalten kommen über vier Knöpfe im Inspektor (`+ Zeile`, `− Zeile`, `+ Spalte`,
 `− Spalte`, immer am Ende). **Seit 2.4** außerdem ein **Inhalts-Textfeld** im Inspektor (`tbl-text`):
 eine Zeile je Tabellenzeile, Spalten mit `|` — der schnelle Weg, eine Tabelle zu füllen
-(`zellenAlsText`/`textAlsZellen`/`commitTblText`). **Zeilen-Formate** in jedem Element (2.23, `zeilenArt()`): Zeile mit `- ` = Stichpunkt, `1. ` = Nummer, `# `/`## ` = Überschrift; Enter in einer Listenzeile setzt die Liste fort, Enter in einer leeren Listenzeile beendet sie (`listeFortsetzen()`). Die Notiz ist seit 2.23 ein Notizblock (Lochband, Papierlinien über `--papier`, Text per Vorgabe links oben; die Füllung wird als `backgroundColor` gesetzt, damit die Linien bleiben). Start/Ende werden quadratisch aufgezogen (`anlegeEnde()`). **Mehrfachauswahl seit 2.0:** mit
+(`zellenAlsText`/`textAlsZellen`/`commitTblText`). **Zeilen-Formate** in jedem Element (2.23, `zeilenArt()`): Zeile mit `- ` = Stichpunkt, `1. ` = Nummer, `# `/`## ` = Überschrift; Enter in einer Listenzeile setzt die Liste fort, Enter in einer leeren Listenzeile beendet sie (`listeFortsetzen()`). **Seit 2.25** außerdem `**fett**` mitten im Text und Ausrichtung je Zeile über den Präfix `<- `/`<-> `/`-> ` (`AUS`/`AUS_MARKER`, `inlineFuellen()`); beim Tippen wirken B, die drei Ausrichtungs-Knöpfe und Strg+B nur auf die Cursor-Zeile bzw. die Markierung (`zeileFormatieren()`, `cursorZeile()` — die Knöpfe fangen `mousedown` ab, damit das Feld den Fokus behält), ohne offenes Feld wie bisher auf das Element. Die Notiz ist seit 2.23 ein Notizblock (Lochband, Papierlinien über `--papier`, Text per Vorgabe links oben; die Füllung wird als `backgroundColor` gesetzt, damit die Linien bleiben). Start/Ende werden quadratisch aufgezogen (`anlegeEnde()`). **Mehrfachauswahl seit 2.0:** mit
 `Auswählen` auf leerer Fläche einen Rahmen ziehen — alles, was der Rahmen **berührt**, ist
 gewählt (`selSet` für Elemente, seit 2.2 `selEdges` für Pfeile — ein Pfeil zählt, wenn der Rahmen
 seine gezeichnete Linie berührt, `strichTrifft()`; Sammel-Modus = `mehrfach()`); die Gruppe lässt sich zusammen verschieben, umfärben und löschen, der
@@ -454,6 +454,15 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
 
   **Ausführungs-Nachweise** (das Protokoll je Fassung) stehen in
   `artefakte/NACHWEISE-2026-09-07.md` — dort **fortschreiben**, hier steht nur der jüngste:
+  - **Fassung 2.25, 2026-09-07 (Zeilen-Formate per Knopf, S9 der Prüfliste):** beim Tippen wirken B und die
+    drei Ausrichtungs-Knöpfe nur auf die Cursor-Zeile bzw. die Markierung (`zeileFormatieren()`,
+    `cursorZeile()`, Marker `**fett**`, `<- `/`<-> `/`-> `; `mousedown` auf den Knöpfen hält den Fokus im
+    Feld), Strg+B im Feld. **Dabei S9 bestätigt und behoben:** `editing.el` war immer `undefined`, weil `t`
+    erst nach dem Merker deklariert wurde — der Wächter in `renderNodes` lief nie, ein Neuaufbau während des
+    Tippens las `innerText` aus einem abgehängten Feld und verlor die Umbrüche (real gemessen: „Erste
+    Zeile- Punkt einsDritte“). Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: B → `**Dritte**`, Rechts →
+    `-> **Dritte**`, B → `-> Dritte`, Markierung „Erste“ + B → `**Erste** Zeile`, Mitte in Listenzeile →
+    `<-> - Punkt eins`, Enter → neue Zeile `<-> - `; Darstellung mit `<b>` und `text-align`. Schritte 6 und 7 stehen aus.
   - **Fassung 2.24, 2026-09-07 (Notiz ruhiger):** Papierlinien blasser (`--papier` .09/.10), jede zweite Textzeile (2.7em), als eigene Ebene `::after` unter dem Lochband über die volle Breite; Eselsohr und Innenschatten weg. Schritte 2, 3, 4 grün, Schritt 5 per Bildschirmfoto. Schritte 6 und 7 stehen aus.
   - **Fassung 2.23, 2026-09-07 (Zeilen-Formate, Notizblock, runde Kreise):** `zeilenArt()` erkennt
     `- `, `1. `, `# `, `## `; `listeFortsetzen()` setzt bei Enter die Liste fort und beendet sie in

@@ -250,3 +250,12 @@ jüngste Eintrag.
   Enter, „zwei“, Enter, Enter, „1. a“, Enter, „b“ → roh `# Titel\n- eins\n- zwei\n1. a\n2. b`,
   dargestellt als h1/li/li/ol/ol. Schritte 6 und 7 stehen aus.
 - **Fassung 2.24, 2026-09-07 (Notiz ruhiger):** Papierlinien blasser (`--papier` .09/.10), jede zweite Textzeile (2.7em), als eigene Ebene `::after` unter dem Lochband über die volle Breite; Eselsohr und Innenschatten weg. Schritte 2, 3, 4 grün, Schritt 5 per Bildschirmfoto. Schritte 6 und 7 stehen aus.
+- **Fassung 2.25, 2026-09-07 (Zeilen-Formate per Knopf, S9 der Prüfliste):** beim Tippen wirken B und die
+  drei Ausrichtungs-Knöpfe nur auf die Cursor-Zeile bzw. die Markierung (`zeileFormatieren()`,
+  `cursorZeile()`, Marker `**fett**`, `<- `/`<-> `/`-> `; `mousedown` auf den Knöpfen hält den Fokus im
+  Feld), Strg+B im Feld. **Dabei S9 bestätigt und behoben:** `editing.el` war immer `undefined`, weil `t`
+  erst nach dem Merker deklariert wurde — der Wächter in `renderNodes` lief nie, ein Neuaufbau während des
+  Tippens las `innerText` aus einem abgehängten Feld und verlor die Umbrüche (real gemessen: „Erste
+  Zeile- Punkt einsDritte“). Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: B → `**Dritte**`, Rechts →
+  `-> **Dritte**`, B → `-> Dritte`, Markierung „Erste“ + B → `**Erste** Zeile`, Mitte in Listenzeile →
+  `<-> - Punkt eins`, Enter → neue Zeile `<-> - `; Darstellung mit `<b>` und `text-align`. Schritte 6 und 7 stehen aus.

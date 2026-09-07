@@ -35,7 +35,7 @@ Brett, (c) an Randfällen beim Speichern mit zwei Betrachtern.
 | S6 | **Mermaid-Export verliert Software-Semantik**: Vererbung, 1:n, Entitäten mit Feldern, Rahmen/Bausteine. Reiter-Typ wird nicht genutzt. | Für `type: data` wäre `classDiagram`/`erDiagram` richtig. |
 | S7 | **Keine Pfeiltasten zum Schubsen.** ~~Strg+D, Strg+C/V, Duplizieren von Gruppen~~ seit 2.13 erledigt. | Bei Mockups die häufigste Bewegung. |
 | S8 | **Reiter lassen sich nicht umsortieren.** | `order` existiert, nur die Bedienung fehlt. |
-| S9 | **`editing.el` ist beim normalen Tippen `undefined`** (`t` wird nach der Zuweisung deklariert, Z. 1927/1929). Beide Sicherheitsnetze (Z. 1540, 3174) greifen nur für Zellen. **Real getestet: Chrome feuert `blur` beim Entfernen, darum klemmt nichts.** Firefox tut das nicht. | Einzeiler, Zeilen tauschen. Latent. |
+| ~~S9~~ (2.25) | **`editing.el` ist beim normalen Tippen `undefined`** (`t` wird nach der Zuweisung deklariert, Z. 1927/1929). Beide Sicherheitsnetze (Z. 1540, 3174) greifen nur für Zellen. **Real getestet: Chrome feuert `blur` beim Entfernen, darum klemmt nichts.** Firefox tut das nicht. | Einzeiler, Zeilen tauschen. Latent. |
 | S10 | ~~`Enter` auf Start/Ende öffnet `beginEdit`~~ seit 2.17 erledigt: Enter/F2 laufen über `oeffneZumTippen()`. | — |
 | S11 | Koordinaten/Größen sind nach oben unbegrenzt (`+v.x || 0` fängt kein `1e300`); `saveView` schreibt das in localStorage und `isFinite(null)` lässt es wieder durch. | `Math.min/max` auf ±1e6 in `applyNodes`. |
 | S12 | Einfrieren setzt `frozen` lokal vor dem Schreiben, kein Rückrollen bei Fehler. | Lokal gesperrt, Datenbank nicht — bis zum Neuladen. |
