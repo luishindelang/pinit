@@ -91,6 +91,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 2.34 | 2026-09-08 | Inspektor lässt Luft zur Zoomleiste; Zieh-Griff an der linken Kante (nach links = breiter) statt Browser-Griff rechts unten |
 | 2.33 | 2026-09-08 | Inspektor nie höher als die Fläche (scrollt innen) und in der Breite ziehbar; Zieh-Griff am Einstellungs-Dialog wieder entfernt |
 | 2.32 | 2026-09-08 | Einstellungen-Dialog scrollt innen (Flex-Kind `min-height: 0`) und ist in der Breite ziehbar, Breite je Betrachter gemerkt |
 | 2.31 | 2026-09-08 | Zugeklappte Gruppen wirklich unsichtbar (`hidden` wurde von `.tab` überstimmt), Ziehen robuster (5-px-Schwelle in beide Richtungen, Ablegen auf leerer Leiste = Ende) |

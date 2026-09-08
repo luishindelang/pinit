@@ -569,12 +569,21 @@
      je Betrachter gemerkt (rb.insp.w). */
   #inspector {
     position: absolute; top: 12px; right: 12px; width: 232px; min-width: 232px; max-width: min(560px, calc(100% - 24px));
-    max-height: calc(100% - 24px); overflow-y: auto; overflow-x: hidden; resize: horizontal;
+    /* 72 px = 12 oben + Zoomleiste (36 + 12 unten) + 12 Luft, damit sich beide nicht ueberschneiden (2.34) */
+    max-height: calc(100% - 72px); overflow-y: auto; overflow-x: hidden;
     background: var(--surface); border: 1px solid var(--line);
     border-radius: 10px; box-shadow: var(--shadow);
     padding: 12px; display: none; z-index: 4; box-sizing: border-box;
   }
   #inspector.on { display: block; }
+  /* Eigener Griff an der LINKEN Kante (2.34): der Browser-Griff sass rechts unten und zog verkehrt
+     herum, weil der Inspektor rechts verankert ist. Links ziehen = breiter. Der Griff ist ein
+     Nachbar in #stage und wird per ResizeObserver an die Kante gelegt (im scrollenden Kasten
+     selbst liesse er sich nicht ueber die ganze Hoehe halten). */
+  #insp-griff { position: absolute; width: 10px; cursor: ew-resize; z-index: 5; }
+  #insp-griff[hidden] { display: none; }
+  #insp-griff::after { content: ""; position: absolute; left: 3px; top: 50%; width: 3px; height: 28px; margin-top: -14px; border-radius: 2px; background: var(--line-strong); opacity: 0; transition: opacity .12s; }
+  #insp-griff:hover::after, #insp-griff.zieht::after { opacity: 1; background: var(--accent); }
   .insp-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
   .insp-top .insp-head { margin-bottom: 0; }
   .insp-top .kennung { margin-top: 0; max-width: 55%; text-align: right; }
@@ -907,6 +916,7 @@
       <p>Werkzeug oben wählen, dann auf der Fläche die Größe aufziehen — ein einzelner Klick nimmt die Standardgröße. Ziehen auf leerer Fläche wählt einen Bereich aus; die Ansicht verschiebt das Werkzeug „Bewegen“ (H) oder die mittlere Maustaste, Mausrad zoomt.</p>
     </div>
 
+    <div id="insp-griff" hidden title="Ziehen: Inspektor breiter oder schmaler"></div>
     <aside id="inspector" aria-label="Eigenschaften">
       <div class="insp-top">
         <div class="insp-head" id="insp-kind">Auswahl</div>
@@ -1094,7 +1104,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.33";
+  var FASSUNG = "2.34";
   var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -4007,14 +4017,40 @@
     else $("btn-help").focus({ preventScroll: true });
   }
   $("btn-help").addEventListener("click", function () { einstZeigen(einstHinter.hidden); });
-  // Breite des Inspektors merken (2.33), gleiche Bauweise wie beim Dialog darunter.
+  // Inspektor-Breite (2.33/2.34): Griff an der linken Kante, nach links ziehen = breiter;
+  // Grenzen 232 px bis 560 px bzw. Buehnenbreite; je Betrachter in rb.insp.w gemerkt.
   (function () {
-    var e = $("inspector"), w = parseInt(load("rb.insp.w"), 10);
+    var e = $("inspector"), g = $("insp-griff"), w = parseInt(load("rb.insp.w"), 10);
     if (w >= 232) e.style.width = w + "px";
-    if (window.ResizeObserver) new ResizeObserver(function () {
-      if (!e.classList.contains("on")) return;
+    function griffLegen() {
+      var an = e.classList.contains("on");
+      g.hidden = !an;
+      if (!an) return;
+      g.style.top = e.offsetTop + "px";
+      g.style.height = e.offsetHeight + "px";
+      g.style.left = (e.offsetLeft - 5) + "px";
+    }
+    if (window.ResizeObserver) new ResizeObserver(griffLegen).observe(e);
+    window.addEventListener("resize", griffLegen);
+    var zieh = null;
+    g.addEventListener("mousedown", function (ev) {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      zieh = { x0: ev.clientX, w0: e.getBoundingClientRect().width };
+      g.classList.add("zieht");
+    });
+    window.addEventListener("mousemove", function (ev) {
+      if (!zieh) return;
+      var max = Math.min(560, $("stage").getBoundingClientRect().width - 24);
+      var w = Math.max(232, Math.min(max, zieh.w0 + (zieh.x0 - ev.clientX)));
+      e.style.width = Math.round(w) + "px";
+      griffLegen();
+    });
+    window.addEventListener("mouseup", function () {
+      if (!zieh) return;
+      zieh = null; g.classList.remove("zieht");
       store("rb.insp.w", String(Math.round(e.getBoundingClientRect().width)));
-    }).observe(e);
+    });
   })();
   $("einst-zu").addEventListener("click", function () { einstZeigen(false); });
   einstHinter.addEventListener("mousedown", function (ev) { if (ev.target === einstHinter) einstZeigen(false); });
