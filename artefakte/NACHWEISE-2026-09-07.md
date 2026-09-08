@@ -271,3 +271,4 @@ jüngste Eintrag.
   Chip [Alpha] vor den Mitgliedern, Chip-Klick versteckt das nicht-aktive Mitglied; Mx-Feld 240 → Mitte
   240; Ziehen um 37/13 px → Mitte 288/−192 (Vielfache von 24); Touchpad: Rad ohne Taste schiebt 30/50,
   Strg+Rad zoomt 1.22, Maus-Modus zoomt wie bisher. Schritte 6 und 7 stehen aus.
+- **Fassung 2.28, 2026-09-08 (Touchpad automatisch):** `istTouchpad(ev)` stuft jedes Rad-Ereignis ein (deltaMode ≠ 0 → Maus; deltaX ≠ 0 → Touchpad; |deltaY| Vielfaches von 100/120 → Maus; klein oder krumm → Touchpad), Vorgabe „Automatisch“, Maus/Touchpad bleiben als feste Wahl. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: 100/−120/3 Zeilen → Zoom; 12.5/−7 und 23 → schieben; Strg −18 → Zoom 1.20; Strg 100 → senkrecht 100. Schritte 6 und 7 stehen aus.
