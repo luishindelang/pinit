@@ -213,8 +213,8 @@ Das native `dblclick` bleibt als zweiter Weg drin und läuft über dieselbe Funk
 (gleiches oder höheres `z`) — so wird eine große Notiz „nach hinten“ zum Träger für das, was darauf
 liegt. `Alt` beim Anfassen bewegt nur das Element selbst. Kein Gruppen-Feld in der Datenbank: die
 Zugehörigkeit wird beim `mousedown` aus der Geometrie berechnet (`mitnehmer()`), die Kinder stehen
-in `drag.kinder` und werden beim `mouseup` einzeln gespeichert. Mausrad zoomt, Umschalt+Mausrad schiebt waagerecht, Strg+Mausrad senkrecht (2.19). Ecke oder Seite ziehen ändert die Größe (acht Griffe; seit 2.22 in einer eigenen Ebene `.grips` über allen Knoten, `griffeSetzen()`/`griffeVon()` schieben sie beim Ziehen mit). Reiter: `+` legt
-an (Name wird direkt getippt), Doppelklick benennt um, `×` am aktiven Reiter löscht
+in `drag.kinder` und werden beim `mouseup` einzeln gespeichert. Mausrad zoomt, Umschalt+Mausrad schiebt waagerecht, Strg+Mausrad senkrecht (2.19); **seit 2.27** wahlweise Touchpad-Modus (Einstellungen → Darstellung, `RAD`/`rb.rad`: zwei Finger schieben, Kneifen zoomt). Die Inspektor-Felder zeigen seit 2.27 die **Mitte** (`Mx`/`My`, gespeichert bleibt die Ecke), und das Raster greift beim Ziehen und Anlegen an der Mitte (Issue #2). Ecke oder Seite ziehen ändert die Größe (acht Griffe; seit 2.22 in einer eigenen Ebene `.grips` über allen Knoten, `griffeSetzen()`/`griffeVon()` schieben sie beim Ziehen mit). Reiter: `+` legt
+an (Name wird direkt getippt), Doppelklick benennt um, **Ziehen ordnet** (2.27, Issue #1; in eine Gruppe ziehen = beitreten), **Rechtsklick** öffnet das Reiter-Menü (`#tab-menu`: Umbenennen, in Gruppe einsortieren, lösen), ein **Gruppen-Chip** vor den Mitgliedern klappt die Gruppe je Betrachter zu und auf (`gruppenChip()`, aktiver Reiter bleibt sichtbar), `×` am aktiven Reiter löscht
 zweistufig. Der Auffang-Reiter „Unsortiert“ ist gestrichelt abgesetzt und kursiv, lässt sich
 nicht umbenennen, nicht löschen, und **auf ihm kann nichts angelegt werden** — er ist eine
 Ablage, kein Arbeitsort. Kein Rückgängig.
@@ -254,7 +254,7 @@ Ablage, kein Arbeitsort. Kein Rückgängig.
   `ends` to|both|none · `head` arrow|triangle (hohles Dreieck = Vererbung) · `fromLabel`/`toLabel`
   (bis 12 Zeichen, Kardinalitäten wie „1“/„n“ an den Enden). Ein Pfeil ohne diese Felder liest
   sich als durchgezogen mit Spitze am Ziel (`pfeilFelder()` ist die EINE Stelle für die Vorgaben).
-- `sheets/<id>`: `name` · `order` · **`type`** (2.9: "" | screen | arch | data | flow, `sheetTypeLesen()`;
+- `sheets/<id>`: `name` · `order` · **`group`** (2.27: Gruppenname bis 40 Zeichen, "" = keine; Mitglieder stehen in der Leiste beisammen hinter einem Chip, `gruppeLesen()`) · **`type`** (2.9: "" | screen | arch | data | flow, `sheetTypeLesen()`;
   Symbol vor dem Reiternamen, Klick auf das Symbol des aktiven Reiters wechselt durch) — fehlt die
   Sammlung, gilt ein impliziter Reiter `haupt`;
   ein fehlendes `sheet` am Knoten/Pfeil zählt als `haupt` (so bleiben Bretter aus Fassungen
@@ -454,6 +454,17 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
 
   **Ausführungs-Nachweise** (das Protokoll je Fassung) stehen in
   `artefakte/NACHWEISE-2026-09-07.md` — dort **fortschreiben**, hier steht nur der jüngste:
+  - **Fassung 2.27, 2026-09-08 (GitHub-Issues #1–#3):** **#1 Reiter** — Ziehen ordnet die Reiter
+    (`reiterZiehbar()`, `reiterVerschieben()`, `order` wird entlang `sichtbareFolge()` neu vergeben),
+    Rechtsklick öffnet `#tab-menu` (Umbenennen, Gruppe, lösen), neues Feld `sheets.group`
+    (`gruppeLesen()`, `reiterGruppieren()`), Gruppen-Chip klappt zu/auf (je Betrachter, `rb.grp.<name>`
+    + Seitenspeicher `gruppenZu`). **#2 Mitte** — Inspektor-Felder und Koordinaten zeigen die Mitte
+    (`Mx`/`My`), das Raster greift beim Ziehen und Anlegen an der Mitte. **#3 Touchpad** — Darstellung
+    → „Mausrad / Touchpad“ (`RAD`, `rb.rad`): zwei Finger schieben, Kneifen zoomt. Schritte 2, 3, 4 grün.
+    Schritt 5 per Ereignis: Reiter 3 vor Übersicht gezogen → Folge 3/Ü/2; Rechtsklick + „Alpha“ + Enter →
+    Chip [Alpha] vor den Mitgliedern, Chip-Klick versteckt das nicht-aktive Mitglied; Mx-Feld 240 → Mitte
+    240; Ziehen um 37/13 px → Mitte 288/−192 (Vielfache von 24); Touchpad: Rad ohne Taste schiebt 30/50,
+    Strg+Rad zoomt 1.22, Maus-Modus zoomt wie bisher. Schritte 6 und 7 stehen aus.
   - **Fassung 2.26, 2026-09-07 (Rücknahme):** Fett und Ausrichtung je Zeile (2.25) wieder entfernt; Listen, Nummern, Überschriften, Enter-Fortsetzung und der S9-Fix bleiben. Schritte 2, 3, 4 grün, Schritt 5 per Ereignis: Enter in „- eins“ → „- “, Enter in „1. a“ → „2. “, B wirkt aufs Element. Schritte 6 und 7 stehen aus.
   - **Fassung 2.25, 2026-09-07 (Zeilen-Formate per Knopf, S9 der Prüfliste):** beim Tippen wirken B und die
     drei Ausrichtungs-Knöpfe nur auf die Cursor-Zeile bzw. die Markierung (`zeileFormatieren()`,

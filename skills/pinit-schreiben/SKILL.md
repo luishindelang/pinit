@@ -46,7 +46,9 @@ ist live. Es gibt **kein Rückgängig**.
   dotted+to · Vererbung = solid+to+triangle (Pfeil zeigt zur Oberklasse) · Beziehung im Datenmodell
   = solid+none mit `fromLabel`/`toLabel` als Kardinalität (`1`/`n`, `n`/`m`).
 - `sheets/<id>`: `name` · `order` (ganze Zahl, Reihenfolge in der Leiste) · `type` ("" | screen |
-  arch | data | flow) — beim Anlegen eines Reiters passend setzen.
+  arch | data | flow) — beim Anlegen eines Reiters passend setzen · `group` (seit 2.27, Gruppenname
+  bis 40 Zeichen oder ""; Reiter derselben Gruppe stehen in der Leiste beisammen — beim Anlegen
+  weglassen oder leer, es sei denn, der Nutzer nennt eine Gruppe).
 - Je Element optional `link` (Datei/URL/Ticket, ≤ 300) und `status` ("" | offen | arbeit | fertig).
   Neue Elemente aus einer Skizze bekommen `status: "offen"`; was Claude gebaut hat, setzt er
   danach per `update` auf `fertig` und trägt in `link` die Datei ein.

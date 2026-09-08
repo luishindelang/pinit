@@ -265,6 +265,33 @@
   }
   .tab[aria-selected="true"] .tab-type { cursor: pointer; }
   .tab[aria-selected="true"] .tab-type:hover { background: var(--accent-soft); opacity: 1; }
+  /* Reiter ziehen (2.27, Issue #1): der gezogene Reiter wird blass, die Einfuegestelle ist ein Strich. */
+  .tab.tab-zieht { opacity: .4; }
+  .tab.drop-vor { box-shadow: inset 3px 0 0 var(--accent); }
+  .tab.drop-nach { box-shadow: inset -3px 0 0 var(--accent); }
+  /* Reiter-Gruppen (2.27): Chip vor den Mitgliedern, Mitglieder mit farbiger Oberkante. */
+  .tab-group {
+    display: inline-flex; align-items: center; gap: 5px; flex: none; align-self: center;
+    margin: 0 2px 0 8px; padding: 4px 9px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: var(--surface);
+    font: 600 10.5px/1 "IBM Plex Sans", sans-serif; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--ink-2); cursor: pointer; white-space: nowrap;
+  }
+  .tab-group:hover { background: var(--accent-soft); color: var(--ink); }
+  .tab-group .pfeil { font-size: 9px; opacity: .7; }
+  .tab.in-group { border-top: 2px solid var(--line-strong); }
+  /* Reiter-Menue per Rechtsklick (2.27): Umbenennen, Gruppe, aus Gruppe loesen. */
+  #tab-menu {
+    position: fixed; z-index: 30; min-width: 200px; padding: 4px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow);
+    font-size: 12.5px; color: var(--ink);
+  }
+  #tab-menu[hidden] { display: none; }
+  #tab-menu button { display: block; width: 100%; text-align: left; border: none; background: none; padding: 7px 10px; border-radius: 5px; font: inherit; color: inherit; }
+  #tab-menu button:hover { background: var(--accent-soft); }
+  #tab-menu .trenner { height: 1px; background: var(--line); margin: 4px 6px; }
+  #tab-menu .hinweis { font-size: 11px; color: var(--ink-3); padding: 4px 10px 0; }
+  #tab-menu input { width: calc(100% - 12px); box-sizing: border-box; margin: 4px 6px 2px; padding: 6px 8px; font: inherit; }
   /* Eingefroren: alles, was aendert, ist stumpf. Lesen, Waehlen, Kennung kopieren, Reiter
      wechseln und Auftauen bleiben. */
   .badge.frozen { color: var(--danger); border-color: var(--danger); }
@@ -818,8 +845,14 @@
             <button data-theme="dark" aria-pressed="false">Dunkel</button>
           </div>
           <p class="hinweis">Gilt für dieses Brett und alle, die es öffnen — wird im Brett gespeichert. „System“ folgt der Einstellung des Betrachters.</p>
+          <h3>Mausrad / Touchpad</h3>
+          <div class="wahl" id="einst-rad">
+            <button data-rad="maus" aria-pressed="true">Maus</button>
+            <button data-rad="touchpad" aria-pressed="false">Touchpad</button>
+          </div>
+          <p class="hinweis">Maus: Rad zoomt, Umschalt+Rad schiebt waagerecht, Strg+Rad senkrecht. Touchpad: zwei Finger schieben in alle Richtungen, Kneifen (Pinch) zoomt. Gilt nur für dieses Fenster.</p>
           <h3>Raster</h3>
-          <p class="hinweis">An/Aus und Schrittweite stehen unten rechts am Knopf „Raster“ und gelten nur für dieses Fenster.</p>
+          <p class="hinweis">An/Aus und Schrittweite stehen unten rechts am Knopf „Raster“ und gelten nur für dieses Fenster. Das Raster greift an der <b>Mitte</b> eines Elements — so liegen verschieden große Elemente auf einer Linie.</p>
         </div>
         <div class="einst-seite" id="einst-info" hidden>
           <dl id="einst-info-liste"></dl>
@@ -833,6 +866,7 @@
   </div>
 
   <div id="tabs" role="tablist" aria-label="Reiter"></div>
+  <div id="tab-menu" hidden role="menu" aria-label="Reiter-Menü"></div>
 
   <div id="stage">
     <div id="canvas">
@@ -871,10 +905,10 @@
       <details class="insp-sec" id="sec-bauart" open>
         <summary>Einstellungen</summary>
         <div class="insp-field" id="size-row" hidden>
-          <label>Position und Größe</label>
+          <label>Mitte und Größe</label>
           <div class="size-grid">
-            <span>x</span><input id="sz-x" type="number" step="1" aria-label="x">
-            <span>y</span><input id="sz-y" type="number" step="1" aria-label="y">
+            <span title="Mitte des Elements, waagerecht">Mx</span><input id="sz-x" type="number" step="1" aria-label="Mitte x">
+            <span title="Mitte des Elements, senkrecht">My</span><input id="sz-y" type="number" step="1" aria-label="Mitte y">
             <span>B</span><input id="sz-w" type="number" step="1" min="24" aria-label="Breite">
             <span>H</span><input id="sz-h" type="number" step="1" min="24" aria-label="Höhe">
           </div>
@@ -1049,8 +1083,8 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.26";
-  var FASSUNG_DATUM = "2026-09-07";
+  var FASSUNG = "2.27";
+  var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
   // align "" ausdruecklich "nimm die Vorgabe" — nur eine Abweichung wird gespeichert.
@@ -1147,6 +1181,8 @@
     flow:     { symbol: "\u21C4", name: "Ablauf" }
   };
   function sheetTypeLesen(v) { return SHEET_TYPES.indexOf(v) > 0 ? v : ""; }
+  // Reiter-Gruppe (2.27, Issue #1): freier Name bis 40 Zeichen, "" = keine Gruppe.
+  function gruppeLesen(v) { return typeof v === "string" ? v.trim().slice(0, 40) : ""; }
   // Status je Element (C5). Leer = kein Status.
   var STATUS = ["", "offen", "arbeit", "fertig"];
   function statusLesen(v) { return STATUS.indexOf(v) > 0 ? v : ""; }
@@ -1174,6 +1210,9 @@
   // Vorgabe 24 = Punktabstand des Hintergrunds (applyView). Schrittweite je Betrachter
   // einstellbar, 0 bis 100 px; 0 heisst frei. Beides liegt im Browser, nicht im Brett.
   var RASTER_VORGABE = 24, RASTER_MAX = 100;
+  // Mausrad-Art (2.27, Issue #3): "maus" = Rad zoomt; "touchpad" = zwei Finger schieben, Kneifen
+  // zoomt (der Browser schickt das Kneifen als Rad-Ereignis mit ctrlKey). Je Betrachter, rb.rad.
+  var RAD = load("rb.rad") === "touchpad" ? "touchpad" : "maus";
   var raster = load("rb.raster") !== "0";
   function rasterLesen(v) {
     var n = Math.round(+v);
@@ -1318,7 +1357,7 @@
   function sheetList() {
     if (!sheets.size) return [{ id: HOME, name: "Übersicht", order: 0 }];
     var a = [];
-    sheets.forEach(function (s, id) { a.push({ id: id, name: s.name, order: s.order || 0, type: s.type || "" }); });
+    sheets.forEach(function (s, id) { a.push({ id: id, name: s.name, order: s.order || 0, type: s.type || "", group: s.group || "" }); });
     a.sort(function (x, y) { return (x.order - y.order) || (x.id < y.id ? -1 : 1); });
     // Auffang-Reiter immer als letzter, und nur wenn wirklich Waisen daliegen. Die Zahl
     // wird hier EINMAL gerechnet und in `letzteWaisen` hinterlegt — renderTabs liest sie
@@ -1486,6 +1525,149 @@
       : "."));
   }
 
+  /* ---- Reiter-Gruppen und Reiter ziehen (2.27, Issue #1) ---- */
+  // Die sichtbare Folge der echten Reiter: nach order, aber Mitglieder einer Gruppe stehen
+  // beisammen an der Stelle des ersten Mitglieds. Nach jedem Ziehen/Gruppieren wird order
+  // entlang dieser Folge neu vergeben, damit die Daten dasselbe sagen wie die Leiste.
+  function sichtbareFolge() {
+    var list = echteReiter(), folge = [], gesehen = {};
+    list.forEach(function (s) {
+      if (!s.group) { folge.push(s); return; }
+      if (gesehen[s.group]) return;
+      gesehen[s.group] = true;
+      list.forEach(function (m) { if (m.group === s.group) folge.push(m); });
+    });
+    return folge;
+  }
+  // Zugeklappt-Zustand: im Seitenspeicher UND im Browser-Merker (der fehlt z. B. bei data:-URLs).
+  var gruppenZu = {};
+  function gruppeZu(name) { return name in gruppenZu ? gruppenZu[name] : load("rb.grp." + name) === "1"; }
+  function gruppeZuSetzen(name, zu) { gruppenZu[name] = zu; store("rb.grp." + name, zu ? "1" : "0"); }
+  function gruppenChip(name) {
+    var c = document.createElement("span");
+    c.className = "tab-group";
+    var zu = gruppeZu(name);
+    c.title = (zu ? "Aufklappen" : "Zuklappen") + " — Gruppe „" + name + "“ (nur dieses Fenster)";
+    var pf = document.createElement("span"); pf.className = "pfeil"; pf.textContent = zu ? "\u25B8" : "\u25BE";
+    c.appendChild(pf);
+    c.appendChild(document.createTextNode(name));
+    c.addEventListener("click", function () { gruppeZuSetzen(name, !zu); renderTabs(); });
+    return c;
+  }
+  var tabZiehen = null, tabZiehenLief = false;
+  function reiterZiehbar(b, id) {
+    b.addEventListener("mousedown", function (ev) {
+      if (ev.button !== 0 || gesperrt() || tabFeldAktiv()) return;
+      if (ev.target.closest && ev.target.closest(".x, .tab-type")) return;
+      tabZiehen = { id: id, x0: ev.clientX, aktiv: false, ziel: null, vor: false };
+    });
+  }
+  function tabZielWeg() {
+    var alt = document.querySelectorAll("#tabs .drop-vor, #tabs .drop-nach");
+    for (var i = 0; i < alt.length; i++) { alt[i].classList.remove("drop-vor"); alt[i].classList.remove("drop-nach"); }
+  }
+  window.addEventListener("mousemove", function (ev) {
+    if (!tabZiehen) return;
+    if (!tabZiehen.aktiv) {
+      if (Math.abs(ev.clientX - tabZiehen.x0) < 6) return;
+      tabZiehen.aktiv = true;
+      var q = $("tabs").querySelector('.tab[data-sheet="' + tabZiehen.id + '"]');
+      if (q) q.classList.add("tab-zieht");
+    }
+    tabZielWeg();
+    var ueber = document.elementFromPoint(ev.clientX, ev.clientY);
+    var t = ueber && ueber.closest ? ueber.closest("#tabs .tab") : null;
+    if (!t || t.classList.contains("tab-catch") || t.dataset.sheet === tabZiehen.id) { tabZiehen.ziel = null; return; }
+    var r = t.getBoundingClientRect();
+    tabZiehen.ziel = t.dataset.sheet;
+    tabZiehen.vor = ev.clientX < r.left + r.width / 2;
+    t.classList.add(tabZiehen.vor ? "drop-vor" : "drop-nach");
+  });
+  window.addEventListener("mouseup", function () {
+    if (!tabZiehen) return;
+    var z = tabZiehen; tabZiehen = null;
+    tabZielWeg();
+    if (!z.aktiv) return;
+    tabZiehenLief = true;                       // der folgende Klick ist kein Reiterwechsel
+    setTimeout(function () { tabZiehenLief = false; }, 0);
+    var q = $("tabs").querySelector(".tab-zieht"); if (q) q.classList.remove("tab-zieht");
+    if (z.ziel) reiterVerschieben(z.id, z.ziel, z.vor);
+  });
+  // Der gezogene Reiter uebernimmt die Gruppe des Ziels: in eine Gruppe ziehen = beitreten,
+  // neben einen freien Reiter ziehen = verlassen. Danach order 0..n entlang der Folge.
+  function reiterVerschieben(id, zielId, vor) {
+    if (gesperrt()) return;
+    materializeHome();
+    var me = sheets.get(id), ziel = sheets.get(zielId); if (!me || !ziel) return;
+    me.group = ziel.group || "";
+    var folge = sichtbareFolge().filter(function (x) { return x.id !== id; });
+    var zi = -1;
+    for (var i = 0; i < folge.length; i++) if (folge[i].id === zielId) { zi = i; break; }
+    if (zi < 0) return;
+    folge.splice(vor ? zi : zi + 1, 0, { id: id });
+    ordnungVergeben(folge);
+    putSheet(id);
+    render();
+  }
+  function ordnungVergeben(folge) {
+    folge.forEach(function (x, i) { var sh = sheets.get(x.id); if (sh && sh.order !== i) { sh.order = i; putSheet(x.id); } });
+  }
+  function reiterGruppieren(id, name) {
+    if (gesperrt()) return;
+    materializeHome();
+    var sh = sheets.get(id); if (!sh) return;
+    name = gruppeLesen(name);
+    if ((sh.group || "") === name) return;
+    sh.group = name;
+    // In die Gruppe = ans Ende der Gruppe ruecken; aus der Gruppe = ans Ende der Leiste.
+    var folge = sichtbareFolge().filter(function (x) { return x.id !== id; });
+    var pos = folge.length;
+    if (name) { for (var i = folge.length - 1; i >= 0; i--) if (folge[i].group === name) { pos = i + 1; break; } }
+    folge.splice(pos, 0, { id: id });
+    ordnungVergeben(folge);
+    putSheet(id);
+    render();
+    toast(name ? "Reiter in Gruppe „" + name + "“" : "Reiter aus der Gruppe gelöst");
+  }
+  var tabMenu = $("tab-menu");
+  function tabMenueWeg() { tabMenu.hidden = true; }
+  function tabMenueZeigen(ev, id) {
+    tabMenueWeg();
+    var sh = sheets.get(id) || { name: sheetName(id), group: "" };
+    while (tabMenu.firstChild) tabMenu.removeChild(tabMenu.firstChild);
+    function knopf(text, fn) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = text;
+      b.addEventListener("click", function () { tabMenueWeg(); fn(); });
+      tabMenu.appendChild(b);
+    }
+    knopf("Umbenennen", function () { renameSheet(id); });
+    if (!gesperrt()) {
+      var tr = document.createElement("div"); tr.className = "trenner"; tabMenu.appendChild(tr);
+      var lab = document.createElement("div"); lab.className = "hinweis";
+      lab.textContent = sh.group ? "Gruppe (Enter übernimmt):" : "In Gruppe einsortieren (Enter):";
+      tabMenu.appendChild(lab);
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.maxLength = 40; inp.placeholder = "Gruppenname"; inp.setAttribute("list", "tab-gruppen");
+      inp.value = sh.group || "";
+      inp.addEventListener("keydown", function (e) {
+        e.stopPropagation();
+        if (e.key === "Enter") { e.preventDefault(); tabMenueWeg(); reiterGruppieren(id, inp.value); }
+        if (e.key === "Escape") { e.preventDefault(); tabMenueWeg(); }
+      });
+      tabMenu.appendChild(inp);
+      var dl = document.createElement("datalist"); dl.id = "tab-gruppen";
+      var namen = {}; sheets.forEach(function (x) { if (x.group) namen[x.group] = 1; });
+      Object.keys(namen).sort().forEach(function (g) { var o = document.createElement("option"); o.value = g; dl.appendChild(o); });
+      tabMenu.appendChild(dl);
+      if (sh.group) knopf("Aus der Gruppe lösen", function () { reiterGruppieren(id, ""); });
+    }
+    tabMenu.hidden = false;
+    tabMenu.style.left = Math.max(0, Math.min(ev.clientX, window.innerWidth - 220)) + "px";
+    tabMenu.style.top = ev.clientY + "px";
+    if (!gesperrt()) setTimeout(function () { var i = tabMenu.querySelector("input"); if (i) i.focus({ preventScroll: true }); }, 0);
+  }
+  window.addEventListener("mousedown", function (ev) { if (!tabMenu.hidden && !tabMenu.contains(ev.target)) tabMenueWeg(); }, true);
+
   function renderTabs() {
     // Nur stehenlassen, solange wirklich in einem Reiter getippt wird. Am
     // Merker allein festzuhalten hat die Leiste dauerhaft einfrieren lassen.
@@ -1499,13 +1681,29 @@
     var waisen = letzteWaisen;
     var echt = list.length - (waisen ? 1 : 0);
 
-    list.forEach(function (s) {
+    // Folge mit Gruppen-Chips (2.27): vor dem ersten Mitglied einer Gruppe ein Chip; zugeklappt
+    // (je Betrachter) sieht man nur den Chip — und den aktiven Reiter, falls er drin liegt.
+    var folge = [], letzteGruppe = "";
+    sichtbareFolge().forEach(function (s) {
+      if (s.group && s.group !== letzteGruppe) folge.push({ gruppe: s.group });
+      letzteGruppe = s.group || "";
+      folge.push(s);
+    });
+    if (waisen) folge.push(list[list.length - 1]);
+
+    folge.forEach(function (s) {
+      if (s.gruppe) { bar.appendChild(gruppenChip(s.gruppe)); return; }
       var b = document.createElement("button");
       b.className = "tab";
       b.setAttribute("role", "tab");
       b.setAttribute("aria-selected", s.id === activeSheet ? "true" : "false");
       b.dataset.sheet = s.id;
-      b.title = "Doppelklick benennt den Reiter um";
+      b.title = "Doppelklick benennt um · Ziehen ordnet · Rechtsklick: Gruppe";
+      if (s.group) { b.classList.add("in-group"); if (gruppeZu(s.group) && s.id !== activeSheet) b.hidden = true; }
+      if (!s.auffang) {
+        reiterZiehbar(b, s.id);
+        b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); tabMenueZeigen(ev, s.id); });
+      }
 
       if (!s.auffang && (s.type || s.id === activeSheet)) {
         var ty = document.createElement("span");
@@ -1551,6 +1749,7 @@
       }
 
       b.addEventListener("click", function () {
+        if (tabZiehenLief) return;
         if (tabEditing === s.id && tabFeldAktiv()) return;
         switchSheet(s.id);
       });
@@ -1669,7 +1868,7 @@
   }
   function putSheet(id) {
     var s = sheets.get(id); if (!s || !db) return;
-    track(db.doc("sheets/" + id).set({ name: s.name, order: s.order, type: s.type || "" }));
+    track(db.doc("sheets/" + id).set({ name: s.name, order: s.order, type: s.type || "", group: s.group || "" }));
   }
   function dropDoc(coll, id) { if (db) track(db.doc(coll + "/" + id).delete()); }
   // meta/board traegt title UND frozen — set() ersetzt das ganze Dokument, also immer beide.
@@ -2178,7 +2377,7 @@
       var nf = $("node-note");
       if (document.activeElement !== nf) nf.value = n.note || "";
       $("insp-coords").textContent =
-        "x " + Math.round(n.x) + "  y " + Math.round(n.y) +
+        "Mitte " + Math.round(n.x + n.w / 2) + " · " + Math.round(n.y + n.h / 2) +
         "   " + Math.round(n.w) + "×" + Math.round(n.h);
       $("insp-id").textContent = "nodes/" + sel.id;
     } else {
@@ -2260,7 +2459,7 @@
     if (w) { nw = Math.max(48, snap(nw)); nh = Math.max(30, snap(nh)); }
     if (w && ohneText({ kind: kind })) nh = nw;   // Kreise bleiben Kreise, auch nach Mindestmass und Raster
     var n = {
-      kind: kind, x: snap(bx - nw / 2), y: snap(by - nh / 2),
+      kind: kind, x: Math.round(snap(bx) - nw / 2), y: Math.round(snap(by) - nh / 2),   // Mitte rastet (2.27)
       w: nw, h: nh, text: "", color: d.color, z: topZ() + 1, sheet: activeSheet,
       fs: 0, bold: 0, align: ""
     };
@@ -2630,7 +2829,8 @@
   }
   // Position und Groesse als Zahlen im Inspektor (2.17).
   function groesseFelderSetzen(n) {
-    [["sz-x", n.x], ["sz-y", n.y], ["sz-w", n.w], ["sz-h", n.h]].forEach(function (p) {
+    // Die Felder zeigen die MITTE (2.27, Issue #2); gespeichert bleibt die Ecke oben links.
+    [["sz-x", n.x + n.w / 2], ["sz-y", n.y + n.h / 2], ["sz-w", n.w], ["sz-h", n.h]].forEach(function (p) {
       var f = $(p[0]);
       if (document.activeElement !== f) f.value = Math.round(p[1]);
     });
@@ -2641,9 +2841,9 @@
     if (gesperrt()) { groesseFelderSetzen(n); return; }
     var x = +$("sz-x").value, y = +$("sz-y").value, w = +$("sz-w").value, h = +$("sz-h").value;
     if (!isFinite(x) || !isFinite(y) || !isFinite(w) || !isFinite(h)) { groesseFelderSetzen(n); return; }
-    x = Math.round(x); y = Math.round(y);
     if (ohneText(n)) { w = h = Math.max(24, Math.round(w !== n.w ? w : h)); }
     else { w = Math.max(48, Math.round(w)); h = Math.max(30, Math.round(h)); }
+    x = Math.round(x - w / 2); y = Math.round(y - h / 2);   // Feld = Mitte -> Ecke
     if (x === n.x && y === n.y && w === n.w && h === n.h) { groesseFelderSetzen(n); return; }
     n.x = x; n.y = y; n.w = w; n.h = h;
     putNode(sel.id); render();
@@ -2910,8 +3110,10 @@
       var n = nodes.get(drag.id); if (!n) return;
       var ddx = Math.round(p.x - drag.start.x), ddy = Math.round(p.y - drag.start.y);
       // Raster: das gezogene Element rastet ein, die Kinder ruecken um denselben Weg.
-      ddx = snap(drag.x0 + ddx) - drag.x0;
-      ddy = snap(drag.y0 + ddy) - drag.y0;
+      // Das Raster greift an der MITTE (2.27, Issue #2): verschieden grosse Elemente liegen so
+      // auf einer Linie, statt mit der Ecke oben links auf dem Raster zu haengen.
+      ddx = Math.round(snap(drag.x0 + n.w / 2 + ddx) - (drag.x0 + n.w / 2));
+      ddy = Math.round(snap(drag.y0 + n.h / 2 + ddy) - (drag.y0 + n.h / 2));
       n.x = drag.x0 + ddx;
       n.y = drag.y0 + ddy;
       drag.moved = true;
@@ -2937,7 +3139,7 @@
       griffeSetzen(griffeVon(drag.id), m);
       renderWires();
       $("insp-coords").textContent =
-        "x " + Math.round(m.x) + "  y " + Math.round(m.y) + "   " + m.w + "×" + m.h;
+        "Mitte " + Math.round(m.x + m.w / 2) + " · " + Math.round(m.y + m.h / 2) + "   " + m.w + "×" + m.h;
       return;
     }
     if (drag.mode === "link") {
@@ -3036,6 +3238,13 @@
 
   canvas.addEventListener("wheel", function (ev) {
     ev.preventDefault();
+    // Touchpad (2.27, Issue #3): zwei Finger schieben in beide Richtungen, Kneifen kommt als
+    // Rad mit ctrlKey und feinen Schritten -> weich zoomen; Umschalt schiebt waagerecht.
+    if (RAD === "touchpad") {
+      if (ev.ctrlKey || ev.metaKey) { zoomAt(ev.clientX, ev.clientY, Math.exp(-ev.deltaY * 0.01)); return; }
+      if (ev.shiftKey) { view.x -= ev.deltaX || ev.deltaY; applyView(); return; }
+      view.x -= ev.deltaX; view.y -= ev.deltaY; applyView(); return;
+    }
     if (ev.shiftKey) {
       view.x -= ev.deltaX || ev.deltaY; applyView(); return;
     }
@@ -3666,13 +3875,16 @@
     ["Umschalt+Rahmen", "Auswahl-Rahmen ergänzt statt zu ersetzen"],
     ["Alt+Ziehen", "Nur dieses Element bewegen (sonst kommt mit, was darauf liegt)"],
     ["Ansicht", null],
-    ["Mausrad", "Zoomen"],
+    ["Mausrad", "Zoomen — bei „Touchpad“ (Darstellung): zwei Finger schieben, Kneifen zoomt"],
     ["Umschalt+Mausrad", "Waagerecht schieben"],
-    ["Strg+Mausrad", "Senkrecht schieben"],
+    ["Strg+Mausrad", "Senkrecht schieben (Maus) · Zoomen (Touchpad)"],
     ["Umschalt+1", "Alles einpassen"],
     ["Reiter", null],
     ["+", "Reiter anlegen (Name direkt tippen)"],
     ["Doppelklick auf Reiter", "Umbenennen"],
+    ["Reiter ziehen", "Reihenfolge ändern; zwischen Reiter einer Gruppe ziehen = Gruppe beitreten, daneben = verlassen"],
+    ["Rechtsklick auf Reiter", "Umbenennen · in Gruppe einsortieren · aus Gruppe lösen"],
+    ["Klick auf Gruppen-Chip", "Gruppe zu- oder aufklappen (nur dieses Fenster)"],
     ["× am aktiven Reiter", "Löschen (zweimal klicken) — Elemente wandern nach „Unsortiert“"]
   ];
   function einstKeysBauen() {
@@ -3732,6 +3944,18 @@
     einstTabs[et].addEventListener("click", function () { einstSeite(this.dataset.seite); });
   }
   // Darstellung: im Brett gespeichert (meta/board.theme); ohne Speicher im Browser-Merker.
+  // Mausrad-Art (2.27): je Betrachter im Browser-Merker rb.rad.
+  var radKnoepfe = document.querySelectorAll("#einst-rad button");
+  function radAnzeigen() {
+    for (var i = 0; i < radKnoepfe.length; i++) radKnoepfe[i].setAttribute("aria-pressed", radKnoepfe[i].dataset.rad === RAD ? "true" : "false");
+  }
+  for (var rk = 0; rk < radKnoepfe.length; rk++) {
+    radKnoepfe[rk].addEventListener("click", function () {
+      RAD = this.dataset.rad === "touchpad" ? "touchpad" : "maus";
+      store("rb.rad", RAD); radAnzeigen(); einstKeysBauen();
+    });
+  }
+  radAnzeigen();
   var themeKnoepfe = document.querySelectorAll("#einst-theme button");
   for (var tk = 0; tk < themeKnoepfe.length; tk++) {
     themeKnoepfe[tk].addEventListener("click", function () {
@@ -4009,7 +4233,8 @@
       next.set(d.id, {
         name: typeof v.name === "string" && v.name ? v.name.slice(0, 80) : "Reiter",
         order: +v.order || 0,
-        type: sheetTypeLesen(v.type)
+        type: sheetTypeLesen(v.type),
+        group: gruppeLesen(v.group)
       });
     });
     sheets = next;

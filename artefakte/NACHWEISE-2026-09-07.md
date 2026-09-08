@@ -260,3 +260,14 @@ jüngste Eintrag.
   `-> **Dritte**`, B → `-> Dritte`, Markierung „Erste“ + B → `**Erste** Zeile`, Mitte in Listenzeile →
   `<-> - Punkt eins`, Enter → neue Zeile `<-> - `; Darstellung mit `<b>` und `text-align`. Schritte 6 und 7 stehen aus.
 - **Fassung 2.26, 2026-09-07 (Rücknahme):** Fett und Ausrichtung je Zeile (2.25) wieder entfernt; Listen, Nummern, Überschriften, Enter-Fortsetzung und der S9-Fix bleiben. Schritte 2, 3, 4 grün, Schritt 5 per Ereignis: Enter in „- eins“ → „- “, Enter in „1. a“ → „2. “, B wirkt aufs Element. Schritte 6 und 7 stehen aus.
+- **Fassung 2.27, 2026-09-08 (GitHub-Issues #1–#3):** **#1 Reiter** — Ziehen ordnet die Reiter
+  (`reiterZiehbar()`, `reiterVerschieben()`, `order` wird entlang `sichtbareFolge()` neu vergeben),
+  Rechtsklick öffnet `#tab-menu` (Umbenennen, Gruppe, lösen), neues Feld `sheets.group`
+  (`gruppeLesen()`, `reiterGruppieren()`), Gruppen-Chip klappt zu/auf (je Betrachter, `rb.grp.<name>`
+  + Seitenspeicher `gruppenZu`). **#2 Mitte** — Inspektor-Felder und Koordinaten zeigen die Mitte
+  (`Mx`/`My`), das Raster greift beim Ziehen und Anlegen an der Mitte. **#3 Touchpad** — Darstellung
+  → „Mausrad / Touchpad“ (`RAD`, `rb.rad`): zwei Finger schieben, Kneifen zoomt. Schritte 2, 3, 4 grün.
+  Schritt 5 per Ereignis: Reiter 3 vor Übersicht gezogen → Folge 3/Ü/2; Rechtsklick + „Alpha“ + Enter →
+  Chip [Alpha] vor den Mitgliedern, Chip-Klick versteckt das nicht-aktive Mitglied; Mx-Feld 240 → Mitte
+  240; Ziehen um 37/13 px → Mitte 288/−192 (Vielfache von 24); Touchpad: Rad ohne Taste schiebt 30/50,
+  Strg+Rad zoomt 1.22, Maus-Modus zoomt wie bisher. Schritte 6 und 7 stehen aus.

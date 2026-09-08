@@ -48,7 +48,9 @@ weiterblättern — sonst fehlt Inhalt.
   to|both|none · `head` arrow|triangle (**triangle = Vererbung**, „B erbt von A“) · `fromLabel`/`toLabel`
   (Kardinalitäten an den Enden, z. B. `1` und `n`). Fehlende Felder = durchgezogen, Spitze am Ziel.
 - `sheets/<id>`: `name` · `order` · `type` ("" | screen = Bildschirm | arch = Architektur | data =
-  Datenmodell | flow = Ablauf) — bestimmt, wie der Reiter ausgewertet wird (s. unten).
+  Datenmodell | flow = Ablauf) — bestimmt, wie der Reiter ausgewertet wird (s. unten) · `group`
+  (seit 2.27, Gruppenname oder ""): Reiter mit Gruppe in der Ausgabe unter einer Zwischenüberschrift
+  „Gruppe <Name>“ zusammenfassen, Reihenfolge wie in der Leiste (Gruppe an der Stelle ihres ersten Mitglieds).
 - `meta/board`: `title` · `frozen` · `theme` (system|light|dark, Darstellung fürs ganze Brett, seit 2.14) — `frozen` true = **eingefrorener Stand**: im Kopf der Datei vermerken
   „Stand eingefroren“ — das ist die verbindliche Fassung, auf die gebaut wird).
 - Je Element außerdem `link` (Datei/URL/Ticket) und `status` ("" | offen | arbeit | fertig).
