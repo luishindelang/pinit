@@ -266,7 +266,9 @@
   .tab[aria-selected="true"] .tab-type { cursor: pointer; }
   .tab[aria-selected="true"] .tab-type:hover { background: var(--accent-soft); opacity: 1; }
   /* Reiter ziehen (2.27, Issue #1): der gezogene Reiter wird blass, die Einfuegestelle ist ein Strich. */
-  .tab.tab-zieht { opacity: .4; }
+  .tab.tab-zieht, .tab-group.tab-zieht { opacity: .4; }
+  .tab-group.drop-vor { box-shadow: inset 3px 0 0 var(--accent); }
+  .tab-group.drop-nach { box-shadow: inset -3px 0 0 var(--accent); }
   .tab.drop-vor { box-shadow: inset 3px 0 0 var(--accent); }
   .tab.drop-nach { box-shadow: inset -3px 0 0 var(--accent); }
   /* Reiter-Gruppen (2.27): Chip vor den Mitgliedern, Mitglieder mit farbiger Oberkante. */
@@ -1083,7 +1085,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.29";
+  var FASSUNG = "2.30";
   var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1560,7 +1562,13 @@
     var pf = document.createElement("span"); pf.className = "pfeil"; pf.textContent = zu ? "\u25B8" : "\u25BE";
     c.appendChild(pf);
     c.appendChild(document.createTextNode(name));
-    c.addEventListener("click", function () { gruppeZuSetzen(name, !zu); renderTabs(); });
+    c.addEventListener("click", function () { if (tabZiehenLief) return; gruppeZuSetzen(name, !zu); renderTabs(); });
+    c.dataset.gruppe = name;
+    // Chip ziehen (2.30): die ganze Gruppe wandert.
+    c.addEventListener("mousedown", function (ev) {
+      if (ev.button !== 0 || gesperrt() || tabFeldAktiv()) return;
+      tabZiehen = { gruppe: name, x0: ev.clientX, aktiv: false, ziel: null, vor: false };
+    });
     return c;
   }
   var tabZiehen = null, tabZiehenLief = false;
@@ -1580,15 +1588,26 @@
     if (!tabZiehen.aktiv) {
       if (Math.abs(ev.clientX - tabZiehen.x0) < 6) return;
       tabZiehen.aktiv = true;
-      var q = $("tabs").querySelector('.tab[data-sheet="' + tabZiehen.id + '"]');
+      var q = tabZiehen.gruppe
+        ? $("tabs").querySelector('.tab-group[data-gruppe="' + tabZiehen.gruppe.replace(/"/g, '\\"') + '"]')
+        : $("tabs").querySelector('.tab[data-sheet="' + tabZiehen.id + '"]');
       if (q) q.classList.add("tab-zieht");
     }
     tabZielWeg();
     var ueber = document.elementFromPoint(ev.clientX, ev.clientY);
-    var t = ueber && ueber.closest ? ueber.closest("#tabs .tab") : null;
-    if (!t || t.classList.contains("tab-catch") || t.dataset.sheet === tabZiehen.id) { tabZiehen.ziel = null; return; }
+    var t = ueber && ueber.closest ? ueber.closest("#tabs .tab, #tabs .tab-group") : null;
+    tabZiehen.ziel = null; tabZiehen.zielGruppe = null;
+    if (!t || t.classList.contains("tab-catch")) return;
+    if (t.classList.contains("tab-group")) {
+      if (t.dataset.gruppe === tabZiehen.gruppe) return;
+      tabZiehen.zielGruppe = t.dataset.gruppe;
+    } else {
+      if (t.dataset.sheet === tabZiehen.id) return;
+      var zs = sheets.get(t.dataset.sheet);
+      if (tabZiehen.gruppe && zs && zs.group === tabZiehen.gruppe) return;   // eigenes Mitglied
+      tabZiehen.ziel = t.dataset.sheet;
+    }
     var r = t.getBoundingClientRect();
-    tabZiehen.ziel = t.dataset.sheet;
     tabZiehen.vor = ev.clientX < r.left + r.width / 2;
     t.classList.add(tabZiehen.vor ? "drop-vor" : "drop-nach");
   });
@@ -1600,7 +1619,9 @@
     tabZiehenLief = true;                       // der folgende Klick ist kein Reiterwechsel
     setTimeout(function () { tabZiehenLief = false; }, 0);
     var q = $("tabs").querySelector(".tab-zieht"); if (q) q.classList.remove("tab-zieht");
-    if (z.ziel) reiterVerschieben(z.id, z.ziel, z.vor);
+    if (z.gruppe) { if (z.ziel || z.zielGruppe) gruppeVerschieben(z.gruppe, z.ziel, z.zielGruppe, z.vor); }
+    else if (z.ziel) reiterVerschieben(z.id, z.ziel, z.vor);
+    else if (z.zielGruppe) reiterZuGruppe(z.id, z.zielGruppe, z.vor);
   });
   // Der gezogene Reiter uebernimmt die Gruppe des Ziels: in eine Gruppe ziehen = beitreten,
   // neben einen freien Reiter ziehen = verlassen. Danach order 0..n entlang der Folge.
@@ -1614,6 +1635,41 @@
     for (var i = 0; i < folge.length; i++) if (folge[i].id === zielId) { zi = i; break; }
     if (zi < 0) return;
     folge.splice(vor ? zi : zi + 1, 0, { id: id });
+    ordnungVergeben(folge);
+    putSheet(id);
+    render();
+  }
+  // Ganze Gruppe verschieben (2.30): alle Mitglieder herausnehmen und vor/hinter dem Ziel wieder
+  // einsetzen. Liegt das Ziel selbst in einer Gruppe, wird VOR deren erstem bzw. HINTER deren
+  // letztem Mitglied eingesetzt — Gruppen bleiben so immer am Stueck.
+  function gruppeVerschieben(name, zielId, zielGruppe, vor) {
+    if (gesperrt()) return;
+    var alle = sichtbareFolge();
+    var glieder = alle.filter(function (x) { return x.group === name; });
+    var rest = alle.filter(function (x) { return x.group !== name; });
+    if (!glieder.length) return;
+    var zg = zielGruppe || (sheets.get(zielId) && sheets.get(zielId).group) || "";
+    var pos = -1;
+    if (zg) {
+      for (var i = 0; i < rest.length; i++) if (rest[i].group === zg) { if (pos < 0) pos = i; if (!vor) pos = i + 1; }
+    } else {
+      for (var j = 0; j < rest.length; j++) if (rest[j].id === zielId) { pos = vor ? j : j + 1; break; }
+    }
+    if (pos < 0) return;
+    Array.prototype.splice.apply(rest, [pos, 0].concat(glieder));
+    ordnungVergeben(rest);
+    render();
+  }
+  // Einzelnen Reiter auf einen Chip ziehen (2.30): vor die Gruppe = frei davor, hinter = beitreten.
+  function reiterZuGruppe(id, name, vor) {
+    if (gesperrt()) return;
+    var sh = sheets.get(id); if (!sh) return;
+    var folge = sichtbareFolge().filter(function (x) { return x.id !== id; });
+    var erst = -1, letzt = -1;
+    for (var i = 0; i < folge.length; i++) if (folge[i].group === name) { if (erst < 0) erst = i; letzt = i; }
+    if (erst < 0) return;
+    sh.group = vor ? "" : name;
+    folge.splice(vor ? erst : letzt + 1, 0, { id: id });
     ordnungVergeben(folge);
     putSheet(id);
     render();
@@ -3881,6 +3937,7 @@
     ["+", "Reiter anlegen (Name direkt tippen)"],
     ["Doppelklick auf Reiter", "Umbenennen"],
     ["Reiter ziehen", "Reihenfolge ändern; zwischen Reiter einer Gruppe ziehen = Gruppe beitreten, daneben = verlassen"],
+    ["Gruppen-Chip ziehen", "Die ganze Gruppe verschieben"],
     ["Rechtsklick auf Reiter", "Umbenennen · in Gruppe einsortieren · aus Gruppe lösen"],
     ["Klick auf Gruppen-Chip", "Gruppe zu- oder aufklappen (nur dieses Fenster)"],
     ["× am aktiven Reiter", "Löschen (zweimal klicken) — Elemente wandern nach „Unsortiert“"]

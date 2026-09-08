@@ -91,6 +91,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 2.30 | 2026-09-08 | Gruppen-Chip ziehen verschiebt die ganze Gruppe; Reiter auf den Chip ziehen = beitreten |
 | 2.29 | 2026-09-08 | Mausrad nach Figma-Regel: Rad schiebt, Strg+Rad/Kneifen zoomt, Umschalt waagerecht; „Rad zoomt“ als Wahl für Maus-Nutzer. Geräte-Erkennung aus 2.28 verworfen |
 | 2.28 | 2026-09-08 | Touchpad wird automatisch am Rad-Ereignis erkannt (`istTouchpad()`), Vorgabe „Automatisch“; Maus/Touchpad bleiben fest wählbar |
 | 2.27 | 2026-09-08 | GitHub-Issues #1–#3: Reiter per Ziehen ordnen und in Gruppen (Rechtsklick, Chip klappt zu) mit neuem Feld `sheets.group`; Inspektor zeigt die Mitte und das Raster greift an der Mitte; Touchpad-Modus in den Einstellungen (zwei Finger schieben, Kneifen zoomt) |
