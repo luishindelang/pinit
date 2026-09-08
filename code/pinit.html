@@ -434,6 +434,8 @@
   }
   /* flex: 1 — die Zeilen teilen sich die Hoehe des Kastens, keine leere Restflaeche (2.16) */
   .node.table table.tbl { width: 100%; flex: 1; border-collapse: collapse; table-layout: fixed; }
+  /* Huelle um die Tabelle (2.36): traegt die Griffe, die ueber die ganze Hoehe/Breite gehen. */
+  .node.table .tbl-wrap { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .node.table td {
     border: 1px solid var(--line); padding: 3px 6px; vertical-align: top;
     overflow-wrap: anywhere; white-space: pre-wrap; text-align: left;
@@ -442,10 +444,9 @@
   .node.table tr:first-child td { font-weight: 600; background: rgba(127,127,127,.12); }
   /* Spalten und Zeilen ziehen (2.35, wie in Excel): Griffe an der rechten Kante der Kopfzellen und an
      der unteren Kante der ersten Spalte; sichtbar beim Ueberfahren. */
-  .node.table td { position: relative; }
   .tbl-cgrip, .tbl-rgrip { position: absolute; z-index: 2; opacity: 0; background: var(--accent); transition: opacity .12s; }
-  .tbl-cgrip { top: 0; bottom: 0; right: -3px; width: 6px; cursor: col-resize; }
-  .tbl-rgrip { left: 0; right: 0; bottom: -3px; height: 6px; cursor: row-resize; }
+  .tbl-cgrip { top: 0; bottom: 0; width: 6px; cursor: col-resize; }
+  .tbl-rgrip { left: 0; right: 0; height: 6px; cursor: row-resize; }
   .tbl-cgrip:hover, .tbl-rgrip:hover, .tbl-cgrip.zieht, .tbl-rgrip.zieht { opacity: .55; }
   body.frozen .tbl-cgrip, body.frozen .tbl-rgrip { display: none; }
   .node.table td.editing {
@@ -1112,7 +1113,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.35";
+  var FASSUNG = "2.36";
   var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -2169,27 +2170,36 @@
     var cells = n.cells || tabelleLeer();
     var colW = masseGueltig(n.colW, cells[0].length) ? n.colW : null;
     var rowH = masseGueltig(n.rowH, cells.length) ? n.rowH : null;
+    // Aussenkanten bleiben am Kasten (2.36): alle Spalten/Zeilen bis auf die letzte sind fest,
+    // die letzte fuellt den Rest. Die Kopfzeile waechst so nicht mit, wenn der Kasten waechst.
     if (colW) {
-      var cg = document.createElement("colgroup"), summe = 0;
-      colW.forEach(function (w) { var col = document.createElement("col"); col.style.width = w + "px"; cg.appendChild(col); summe += w; });
+      var cg = document.createElement("colgroup");
+      colW.forEach(function (w, i) { var col = document.createElement("col"); if (i < colW.length - 1) col.style.width = w + "px"; cg.appendChild(col); });
       tb.appendChild(cg);
-      tb.style.width = summe + "px";   // feste Spalten: die Tabelle ist so breit wie ihre Spalten
     }
-    if (rowH) tb.style.flex = "none";   // feste Zeilen: die Kopfzeile waechst nicht mehr mit dem Kasten
+    // Mit festen Zeilen darf die Tabelle NICHT auf die Huelle gedehnt werden: ein Browser verteilt
+    // Extra-Hoehe auf alle Zeilen, auch die festen. Stattdessen bekommt die letzte Zeile den Rest
+    // ausdruecklich zugewiesen (tabellenGriffeLegen).
+    if (rowH) tb.style.flex = "none";
     cells.forEach(function (row, r) {
       var tr = document.createElement("tr");
-      if (rowH) tr.style.height = rowH[r] + "px";
+      if (rowH && r < rowH.length - 1) tr.style.height = rowH[r] + "px";
       row.forEach(function (val, c) {
         var td = document.createElement("td");
         td.dataset.r = r; td.dataset.c = c;
         td.textContent = val;
-        if (r === 0) { var cgr = document.createElement("div"); cgr.className = "tbl-cgrip"; cgr.dataset.idx = c; cgr.title = "Spaltenbreite ziehen"; td.appendChild(cgr); }
-        if (c === 0) { var rgr = document.createElement("div"); rgr.className = "tbl-rgrip"; rgr.dataset.idx = r; rgr.title = "Zeilenhöhe ziehen"; td.appendChild(rgr); }
         tr.appendChild(td);
       });
       tb.appendChild(tr);
     });
-    return tb;
+    var wrap = document.createElement("div");
+    wrap.className = "tbl-wrap";
+    wrap.appendChild(tb);
+    // Griffe ueber die ganze Hoehe (Spalten) bzw. Breite (Zeilen); an der letzten Kante keiner —
+    // die ist der Kastenrand. Lage wird nach dem Einhaengen gemessen (tabellenGriffeLegen).
+    for (var c2 = 0; c2 < cells[0].length - 1; c2++) { var cgr = document.createElement("div"); cgr.className = "tbl-cgrip"; cgr.dataset.idx = c2; cgr.title = "Spaltenbreite ziehen"; wrap.appendChild(cgr); }
+    for (var r2 = 0; r2 < cells.length - 1; r2++) { var rgr = document.createElement("div"); rgr.className = "tbl-rgrip"; rgr.dataset.idx = r2; rgr.title = "Zeilenhöhe ziehen"; wrap.appendChild(rgr); }
+    return wrap;
   }
 
   // Wird waehrend einer offenen Texteingabe neu gezeichnet (Farbe, Ebene, Duplizieren,
@@ -2340,6 +2350,7 @@
       if (n.link) el.title = (el.title ? el.title + "\n" : "") + "\u2197 " + n.link;
 
       layer.appendChild(el);
+      if (n.kind === "table") tabellenGriffeLegen(el, n);
     });
   }
 
@@ -3108,13 +3119,39 @@
     var tb = el.querySelector("table.tbl"); if (!tb) return;
     var cells = n.cells || tabelleLeer();
     if (masseGueltig(n.colW, cells[0].length)) {
-      var cols = tb.querySelectorAll("col"), summe = 0;
-      n.colW.forEach(function (w, i) { if (cols[i]) cols[i].style.width = w + "px"; summe += w; });
-      tb.style.width = summe + "px";
+      var cols = tb.querySelectorAll("col");
+      n.colW.forEach(function (w, i) { if (cols[i] && i < n.colW.length - 1) cols[i].style.width = w + "px"; });
     }
     if (masseGueltig(n.rowH, cells.length)) {
       var trs = tb.querySelectorAll("tr");
-      n.rowH.forEach(function (h, i) { if (trs[i]) trs[i].style.height = h + "px"; });
+      n.rowH.forEach(function (h, i) { if (trs[i] && i < n.rowH.length - 1) trs[i].style.height = h + "px"; });
+    }
+    tabellenGriffeLegen(el, n);
+  }
+  // Griffe an die gemessenen Zellkanten legen (2.36): Spalten-Griff i an der rechten Kante von
+  // Spalte i ueber die ganze Tabellenhoehe, Zeilen-Griff i an der unteren Kante von Zeile i ueber
+  // die ganze Breite. Masse in Brett-Pixeln (Rechteck durch view.k).
+  function tabellenGriffeLegen(el, n) {
+    var wrap = el.querySelector(".tbl-wrap"); if (!wrap) return;
+    var wr = wrap.getBoundingClientRect(), k = view.k || 1;
+    // Letzte Zeile = Rest der Huelle (nur bei festen Zeilen); gemessen, weil eine feste Zeile
+    // durch ihren Inhalt hoeher sein kann als ihr Mass.
+    var cells = n && (n.cells || tabelleLeer());
+    if (n && masseGueltig(n.rowH, cells.length)) {
+      var trs = wrap.querySelectorAll("tr"), belegt = 0;
+      for (var t = 0; t < trs.length - 1; t++) belegt += trs[t].getBoundingClientRect().height / k;
+      if (trs.length) trs[trs.length - 1].style.height = Math.max(TBL_MIN_MASS, Math.round(wr.height / k - belegt)) + "px";
+    }
+    var cg = wrap.querySelectorAll(".tbl-cgrip"), rg = wrap.querySelectorAll(".tbl-rgrip");
+    for (var i = 0; i < cg.length; i++) {
+      var td = wrap.querySelector('td[data-r="0"][data-c="' + cg[i].dataset.idx + '"]'); if (!td) continue;
+      var r = td.getBoundingClientRect();
+      cg[i].style.left = Math.round((r.right - wr.left) / k - 3) + "px";
+    }
+    for (var j = 0; j < rg.length; j++) {
+      var td2 = wrap.querySelector('td[data-c="0"][data-r="' + rg[j].dataset.idx + '"]'); if (!td2) continue;
+      var r2 = td2.getBoundingClientRect();
+      rg[j].style.top = Math.round((r2.bottom - wr.top) / k - 3) + "px";
     }
   }
   /* ============================ Maus ============================ */
@@ -3321,7 +3358,7 @@
       var g = groesseZiehen(m, drag, p);
       m.x = g.x; m.y = g.y; m.w = g.w; m.h = g.h;
       var el2 = layer.querySelector('.node[data-id="' + drag.id + '"]');
-      if (el2) { el2.style.left = m.x + "px"; el2.style.top = m.y + "px"; el2.style.width = m.w + "px"; el2.style.height = m.h + "px"; }
+      if (el2) { el2.style.left = m.x + "px"; el2.style.top = m.y + "px"; el2.style.width = m.w + "px"; el2.style.height = m.h + "px"; if (m.kind === "table") tabellenGriffeLegen(el2, m); }
       griffeSetzen(griffeVon(drag.id), m);
       renderWires();
       $("insp-coords").textContent =
@@ -3397,9 +3434,10 @@
     else if (d.mode === "tblcol" || d.mode === "tblrow") {
       var tn2 = nodes.get(d.id);
       if (tn2) {
-        // Kasten mitwachsen lassen, damit nichts abgeschnitten wird (der Kasten hat overflow: hidden)
-        if (d.mode === "tblcol") { var sb = 0; tn2.colW.forEach(function (w) { sb += w; }); if (sb + 4 > tn2.w) tn2.w = sb + 4; }
-        else { var sh = 0; tn2.rowH.forEach(function (h) { sh += h; }); var kopf = 0; var tt = layer.querySelector('.node[data-id="' + d.id + '"] .txt'); if (tt) kopf = tt.getBoundingClientRect().height / view.k; if (sh + kopf + 4 > tn2.h) tn2.h = Math.round(sh + kopf + 4); }
+        // Die letzte Spalte/Zeile fuellt den Rest — der Kasten waechst nur, wenn fuer sie kein
+        // Platz mehr bliebe (mindestens TBL_MIN_MASS).
+        if (d.mode === "tblcol") { var sb = 0; tn2.colW.forEach(function (w, i) { if (i < tn2.colW.length - 1) sb += w; }); if (sb + TBL_MIN_MASS + 4 > tn2.w) tn2.w = sb + TBL_MIN_MASS + 4; }
+        else { var sh = 0; tn2.rowH.forEach(function (h, i) { if (i < tn2.rowH.length - 1) sh += h; }); var kopf = 0; var tt = layer.querySelector('.node[data-id="' + d.id + '"] .txt'); if (tt) kopf = tt.getBoundingClientRect().height / view.k; if (sh + kopf + TBL_MIN_MASS + 4 > tn2.h) tn2.h = Math.round(sh + kopf + TBL_MIN_MASS + 4); }
         putNode(d.id);
       }
       render();
@@ -4051,7 +4089,7 @@
     ["Doppelklick", "Element oder Pfeil beschriften; auf leerer Fläche: Kasten anlegen"],
     ["Enter · F2", "Gewähltes Element beschriften (auch: Knopf „Text bearbeiten“ im Inspektor)"],
     ["Griffe ziehen", "Größe ändern an allen Ecken und Seiten; Start/Ende bleiben rund"],
-    ["Tabelle: Kanten ziehen", "Spaltenbreite (rechte Kante der Kopfzelle) und Zeilenhöhe (untere Kante der ersten Spalte) wie in Excel"],
+    ["Tabelle: Linien ziehen", "Spaltenbreite und Zeilenhöhe an den Trennlinien wie in Excel; die Außenkanten sind der Kastenrand"],
     ["Strg+Enter", "Beschriftung abschließen"],
     ["Enter in „- “ / „1. “", "Nächster Stichpunkt bzw. nächste Nummer; Enter in leerer Listenzeile beendet die Liste"],
     ["# · ##", "Zeile als Überschrift (groß / mittel) — Zeilen-Formate gelten in jedem Element"],
