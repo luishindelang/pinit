@@ -282,6 +282,9 @@
   .tab-group:hover { background: var(--accent-soft); color: var(--ink); }
   .tab-group .pfeil { font-size: 9px; opacity: .7; }
   .tab.in-group { border-top: 2px solid var(--line-strong); }
+  /* hidden MUSS hier stehen: .tab setzt display inline-flex und ueberstimmt sonst das Attribut —
+     zugeklappte Gruppen blieben so sichtbar (2.31, real am Brett gesehen). */
+  #tabs .tab[hidden] { display: none !important; }
   /* Reiter-Menue per Rechtsklick (2.27): Umbenennen, Gruppe, aus Gruppe loesen. */
   #tab-menu {
     position: fixed; z-index: 30; min-width: 200px; padding: 4px;
@@ -1085,7 +1088,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.30";
+  var FASSUNG = "2.31";
   var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1567,7 +1570,8 @@
     // Chip ziehen (2.30): die ganze Gruppe wandert.
     c.addEventListener("mousedown", function (ev) {
       if (ev.button !== 0 || gesperrt() || tabFeldAktiv()) return;
-      tabZiehen = { gruppe: name, x0: ev.clientX, aktiv: false, ziel: null, vor: false };
+      ev.preventDefault();
+      tabZiehen = { gruppe: name, x0: ev.clientX, y0: ev.clientY, aktiv: false, ziel: null, vor: false };
     });
     return c;
   }
@@ -1576,7 +1580,8 @@
     b.addEventListener("mousedown", function (ev) {
       if (ev.button !== 0 || gesperrt() || tabFeldAktiv()) return;
       if (ev.target.closest && ev.target.closest(".x, .tab-type")) return;
-      tabZiehen = { id: id, x0: ev.clientX, aktiv: false, ziel: null, vor: false };
+      ev.preventDefault();
+      tabZiehen = { id: id, x0: ev.clientX, y0: ev.clientY, aktiv: false, ziel: null, vor: false };
     });
   }
   function tabZielWeg() {
@@ -1586,7 +1591,7 @@
   window.addEventListener("mousemove", function (ev) {
     if (!tabZiehen) return;
     if (!tabZiehen.aktiv) {
-      if (Math.abs(ev.clientX - tabZiehen.x0) < 6) return;
+      if (Math.abs(ev.clientX - tabZiehen.x0) < 5 && Math.abs(ev.clientY - tabZiehen.y0) < 5) return;
       tabZiehen.aktiv = true;
       var q = tabZiehen.gruppe
         ? $("tabs").querySelector('.tab-group[data-gruppe="' + tabZiehen.gruppe.replace(/"/g, '\\"') + '"]')
@@ -1597,6 +1602,12 @@
     var ueber = document.elementFromPoint(ev.clientX, ev.clientY);
     var t = ueber && ueber.closest ? ueber.closest("#tabs .tab, #tabs .tab-group") : null;
     tabZiehen.ziel = null; tabZiehen.zielGruppe = null;
+    if (!t && ueber && ueber.closest && ueber.closest("#tabs")) {
+      // ueber der Leiste, aber auf keinem Reiter: hinter den letzten echten Reiter
+      var alle = $("tabs").querySelectorAll(".tab:not(.tab-catch)");
+      t = alle.length ? alle[alle.length - 1] : null;
+      if (t) { var rr = t.getBoundingClientRect(); ev = { clientX: rr.right }; }
+    }
     if (!t || t.classList.contains("tab-catch")) return;
     if (t.classList.contains("tab-group")) {
       if (t.dataset.gruppe === tabZiehen.gruppe) return;
