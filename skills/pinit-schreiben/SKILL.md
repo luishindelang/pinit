@@ -50,6 +50,8 @@ ist live. Es gibt **kein Rückgängig**.
   bis 40 Zeichen oder ""; Reiter derselben Gruppe stehen in der Leiste beisammen — beim Anlegen
   weglassen oder leer, es sei denn, der Nutzer nennt eine Gruppe).
 - Je Element optional `link` (Datei/URL/Ticket, ≤ 300) und `status` ("" | offen | arbeit | fertig).
+- Tabellen optional `colW`/`rowH` (seit 2.35): Array von Pixeln je Spalte bzw. Zeile, Länge = Spalten- bzw.
+  Zeilenzahl; beim Anlegen weglassen (die Tabelle teilt sich den Kasten dann gleichmäßig auf).
   Neue Elemente aus einer Skizze bekommen `status: "offen"`; was Claude gebaut hat, setzt er
   danach per `update` auf `fertig` und trägt in `link` die Datei ein.
 - `meta/board`: `title` · `frozen` · `theme` (system|light|dark, seit 2.14) — **immer alle drei Felder zusammen** schreiben (`set` ersetzt das

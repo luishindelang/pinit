@@ -440,6 +440,14 @@
     height: 1.7em;   /* wirkt bei td als Mindesthoehe — leere Zeilen fallen sonst auf 1 px zusammen */
   }
   .node.table tr:first-child td { font-weight: 600; background: rgba(127,127,127,.12); }
+  /* Spalten und Zeilen ziehen (2.35, wie in Excel): Griffe an der rechten Kante der Kopfzellen und an
+     der unteren Kante der ersten Spalte; sichtbar beim Ueberfahren. */
+  .node.table td { position: relative; }
+  .tbl-cgrip, .tbl-rgrip { position: absolute; z-index: 2; opacity: 0; background: var(--accent); transition: opacity .12s; }
+  .tbl-cgrip { top: 0; bottom: 0; right: -3px; width: 6px; cursor: col-resize; }
+  .tbl-rgrip { left: 0; right: 0; bottom: -3px; height: 6px; cursor: row-resize; }
+  .tbl-cgrip:hover, .tbl-rgrip:hover, .tbl-cgrip.zieht, .tbl-rgrip.zieht { opacity: .55; }
+  body.frozen .tbl-cgrip, body.frozen .tbl-rgrip { display: none; }
   .node.table td.editing {
     outline: 2px solid var(--accent); outline-offset: -2px;
     user-select: text; cursor: text;
@@ -1104,7 +1112,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.34";
+  var FASSUNG = "2.35";
   var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1277,6 +1285,27 @@
   function tabelleLeer() { return [["Spalte 1", "Spalte 2"], ["", ""], ["", ""]]; }
   function zellenKopie(c) { return (c || tabelleLeer()).map(function (r) { return r.slice(); }); }
   // Fremde Schreiber duerfen jede Form liefern — hier wird sie rechteckig, begrenzt, String.
+  // Spaltenbreiten / Zeilenhoehen (2.35): Array von Zahlen in Brett-Pixeln, eins je Spalte bzw.
+  // Zeile; fehlt es, teilt sich die Tabelle den Kasten gleichmaessig auf (Verhalten bis 2.34).
+  // Passt die Laenge nicht (Spalte dazu/weg ueber einen alten Weg), gilt es als nicht gesetzt.
+  var TBL_MIN_MASS = 16, TBL_MAX_MASS = 2000;
+  function masseLesen(v) {
+    if (!Array.isArray(v) || !v.length) return undefined;
+    var out = [];
+    for (var i = 0; i < v.length && i < 20; i++) {
+      var z = +v[i];
+      if (!isFinite(z)) return undefined;
+      out.push(Math.round(Math.max(TBL_MIN_MASS, Math.min(TBL_MAX_MASS, z))));
+    }
+    return out;
+  }
+  function masseGueltig(arr, anzahl) { return Array.isArray(arr) && arr.length === anzahl; }
+  // colW/rowH nur mitschreiben, wenn sie zur Tabelle passen — sonst stehen tote Werte in der Datenbank.
+  function tabellenMasse(n, d) {
+    var cells = n.cells || tabelleLeer();
+    if (masseGueltig(n.colW, cells[0].length)) d.colW = n.colW.slice();
+    if (masseGueltig(n.rowH, cells.length)) d.rowH = n.rowH.slice();
+  }
   function zellenLesen(v) {
     if (!Array.isArray(v) || !v.length || !Array.isArray(v[0])) return tabelleLeer();
     var cols = Math.max(1, Math.min(TBL_MAX_SPALTEN, v[0].length));
@@ -1943,7 +1972,7 @@
       fs: n.fs || 0, bold: n.bold || 0, align: n.align || "",
       note: n.note || "", valign: n.valign || ""
     };
-    if (n.kind === "table") d.cells = zellenKopie(n.cells);
+    if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
     if (n.kind === "widget") d.variant = n.variant || "button";
     if (n.kind === "entity") { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
@@ -2138,12 +2167,24 @@
     tb.className = "tbl";
     tb.style.fontSize = schriftgrad(n) + "px";
     var cells = n.cells || tabelleLeer();
+    var colW = masseGueltig(n.colW, cells[0].length) ? n.colW : null;
+    var rowH = masseGueltig(n.rowH, cells.length) ? n.rowH : null;
+    if (colW) {
+      var cg = document.createElement("colgroup"), summe = 0;
+      colW.forEach(function (w) { var col = document.createElement("col"); col.style.width = w + "px"; cg.appendChild(col); summe += w; });
+      tb.appendChild(cg);
+      tb.style.width = summe + "px";   // feste Spalten: die Tabelle ist so breit wie ihre Spalten
+    }
+    if (rowH) tb.style.flex = "none";   // feste Zeilen: die Kopfzeile waechst nicht mehr mit dem Kasten
     cells.forEach(function (row, r) {
       var tr = document.createElement("tr");
+      if (rowH) tr.style.height = rowH[r] + "px";
       row.forEach(function (val, c) {
         var td = document.createElement("td");
         td.dataset.r = r; td.dataset.c = c;
         td.textContent = val;
+        if (r === 0) { var cgr = document.createElement("div"); cgr.className = "tbl-cgrip"; cgr.dataset.idx = c; cgr.title = "Spaltenbreite ziehen"; td.appendChild(cgr); }
+        if (c === 0) { var rgr = document.createElement("div"); rgr.className = "tbl-rgrip"; rgr.dataset.idx = r; rgr.title = "Zeilenhöhe ziehen"; td.appendChild(rgr); }
         tr.appendChild(td);
       });
       tb.appendChild(tr);
@@ -3052,6 +3093,30 @@
     if (r >= 0) beginCellEdit(id, r, c); else beginEdit(id);
   }
 
+  // Gemessene Spaltenbreiten (erste Zeile) bzw. Zeilenhoehen (erste Spalte) in Brett-Pixeln.
+  function tabellenMasseLesen(nodeEl, was) {
+    var out = [];
+    var tds = nodeEl.querySelectorAll(was === "col" ? 'td[data-r="0"]' : 'td[data-c="0"]');
+    for (var i = 0; i < tds.length; i++) {
+      var r = tds[i].getBoundingClientRect();
+      out.push(Math.max(TBL_MIN_MASS, Math.round((was === "col" ? r.width : r.height) / view.k)));
+    }
+    return out;
+  }
+  // Waehrend des Ziehens direkt am DOM (kein Neuaufbau), gespeichert wird beim mouseup.
+  function tabellenMassAnwenden(el, n) {
+    var tb = el.querySelector("table.tbl"); if (!tb) return;
+    var cells = n.cells || tabelleLeer();
+    if (masseGueltig(n.colW, cells[0].length)) {
+      var cols = tb.querySelectorAll("col"), summe = 0;
+      n.colW.forEach(function (w, i) { if (cols[i]) cols[i].style.width = w + "px"; summe += w; });
+      tb.style.width = summe + "px";
+    }
+    if (masseGueltig(n.rowH, cells.length)) {
+      var trs = tb.querySelectorAll("tr");
+      n.rowH.forEach(function (h, i) { if (trs[i]) trs[i].style.height = h + "px"; });
+    }
+  }
   /* ============================ Maus ============================ */
   canvas.addEventListener("mousedown", function (ev) {
     if (ev.button === 1) { startPan(ev); return; }
@@ -3059,6 +3124,26 @@
 
     var grip = ev.target.closest ? ev.target.closest(".grip") : null;
     var nodeEl = ev.target.closest ? ev.target.closest(".node") : null;
+    // Tabellen-Griffe (2.35): Spaltenbreite / Zeilenhoehe ziehen. Beim ersten Ziehen werden ALLE
+    // aktuellen Masse festgehalten, damit sich nur die eine Spalte/Zeile aendert und der Rest bleibt.
+    var tg = ev.target.closest ? ev.target.closest(".tbl-cgrip, .tbl-rgrip") : null;
+    if (tg && nodeEl) {
+      ev.preventDefault();
+      if (gesperrt()) return;
+      var tn = nodes.get(nodeEl.dataset.id); if (!tn || tn.kind !== "table") return;
+      var spalte = tg.classList.contains("tbl-cgrip");
+      var zellen = tn.cells || tabelleLeer();
+      var masse = spalte ? tabellenMasseLesen(nodeEl, "col") : tabellenMasseLesen(nodeEl, "row");
+      if (spalte) { if (!masseGueltig(tn.colW, zellen[0].length)) tn.colW = masse; }
+      else { if (!masseGueltig(tn.rowH, zellen.length)) tn.rowH = masse; }
+      selSet.clear(); selEdges.clear();
+      sel = { type: "node", id: nodeEl.dataset.id };
+      drag = { mode: spalte ? "tblcol" : "tblrow", id: nodeEl.dataset.id, idx: +tg.dataset.idx,
+               start: toBoard(ev.clientX, ev.clientY), m0: (spalte ? tn.colW : tn.rowH)[+tg.dataset.idx], griff: tg };
+      tg.classList.add("zieht");
+      render();
+      return;
+    }
     var wireEl = ev.target.closest ? ev.target.closest("g.wire") : null;
 
     // Doppelklick selbst erkennen (s. letzterKlick): zweiter Klick auf dasselbe Element
@@ -3222,6 +3307,15 @@
       renderWires();
       return;
     }
+    if (drag.mode === "tblcol" || drag.mode === "tblrow") {
+      var tm = nodes.get(drag.id); if (!tm) return;
+      var arr = drag.mode === "tblcol" ? tm.colW : tm.rowH;
+      var delta = drag.mode === "tblcol" ? p.x - drag.start.x : p.y - drag.start.y;
+      arr[drag.idx] = Math.round(Math.max(TBL_MIN_MASS, Math.min(TBL_MAX_MASS, drag.m0 + delta)));
+      var tel = layer.querySelector('.node[data-id="' + drag.id + '"]');
+      if (tel) tabellenMassAnwenden(tel, tm);
+      return;
+    }
     if (drag.mode === "resize") {
       var m = nodes.get(drag.id); if (!m) return;
       var g = groesseZiehen(m, drag, p);
@@ -3300,6 +3394,16 @@
       render();
     }
     else if (d.mode === "resize") { putNode(d.id); render(); }
+    else if (d.mode === "tblcol" || d.mode === "tblrow") {
+      var tn2 = nodes.get(d.id);
+      if (tn2) {
+        // Kasten mitwachsen lassen, damit nichts abgeschnitten wird (der Kasten hat overflow: hidden)
+        if (d.mode === "tblcol") { var sb = 0; tn2.colW.forEach(function (w) { sb += w; }); if (sb + 4 > tn2.w) tn2.w = sb + 4; }
+        else { var sh = 0; tn2.rowH.forEach(function (h) { sh += h; }); var kopf = 0; var tt = layer.querySelector('.node[data-id="' + d.id + '"] .txt'); if (tt) kopf = tt.getBoundingClientRect().height / view.k; if (sh + kopf + 4 > tn2.h) tn2.h = Math.round(sh + kopf + 4); }
+        putNode(d.id);
+      }
+      render();
+    }
     else if (d.mode === "link") {
       var over = document.elementFromPoint(ev.clientX, ev.clientY);
       var oel = over && over.closest ? over.closest(".node") : null;
@@ -3794,24 +3898,28 @@
     tabelleAendern(function (n) {
       if (n.cells.length >= TBL_MAX_ZEILEN) { toast("Höchstens " + TBL_MAX_ZEILEN + " Zeilen."); return false; }
       n.cells.push(n.cells[0].map(function () { return ""; }));
+      if (masseGueltig(n.rowH, n.cells.length - 1)) n.rowH.push(n.rowH[n.rowH.length - 1]);
     });
   });
   $("tbl-row-minus").addEventListener("click", function () {
     tabelleAendern(function (n) {
       if (n.cells.length <= 1) { toast("Die Kopfzeile bleibt."); return false; }
       n.cells.pop();
+      if (masseGueltig(n.rowH, n.cells.length + 1)) n.rowH.pop();
     });
   });
   $("tbl-col-plus").addEventListener("click", function () {
     tabelleAendern(function (n) {
       if (n.cells[0].length >= TBL_MAX_SPALTEN) { toast("Höchstens " + TBL_MAX_SPALTEN + " Spalten."); return false; }
       n.cells.forEach(function (r) { r.push(""); });
+      if (masseGueltig(n.colW, n.cells[0].length - 1)) n.colW.push(n.colW[n.colW.length - 1]);
     });
   });
   $("tbl-col-minus").addEventListener("click", function () {
     tabelleAendern(function (n) {
       if (n.cells[0].length <= 1) { toast("Eine Spalte bleibt."); return false; }
       n.cells.forEach(function (r) { r.pop(); });
+      if (masseGueltig(n.colW, n.cells[0].length + 1)) n.colW.pop();
     });
   });
 
@@ -3835,7 +3943,7 @@
       fs: n.fs || 0, bold: n.bold || 0, align: n.align || "",
       note: n.note || "", valign: n.valign || "", link: n.link || "", status: statusLesen(n.status)
     };
-    if (n.kind === "table") d.cells = zellenKopie(n.cells);
+    if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
     if (n.kind === "widget") d.variant = n.variant || "button";
     if (n.kind === "entity") { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
@@ -3943,6 +4051,7 @@
     ["Doppelklick", "Element oder Pfeil beschriften; auf leerer Fläche: Kasten anlegen"],
     ["Enter · F2", "Gewähltes Element beschriften (auch: Knopf „Text bearbeiten“ im Inspektor)"],
     ["Griffe ziehen", "Größe ändern an allen Ecken und Seiten; Start/Ende bleiben rund"],
+    ["Tabelle: Kanten ziehen", "Spaltenbreite (rechte Kante der Kopfzelle) und Zeilenhöhe (untere Kante der ersten Spalte) wie in Excel"],
     ["Strg+Enter", "Beschriftung abschließen"],
     ["Enter in „- “ / „1. “", "Nächster Stichpunkt bzw. nächste Nummer; Enter in leerer Listenzeile beendet die Liste"],
     ["# · ##", "Zeile als Überschrift (groß / mittel) — Zeilen-Formate gelten in jedem Element"],
@@ -4132,7 +4241,7 @@
         fs: n.fs || 0, bold: n.bold || 0, align: n.align || "",
         note: n.note || "", valign: n.valign || ""
       };
-      if (n.kind === "table") out.nodes[id].cells = zellenKopie(n.cells);
+      if (n.kind === "table") { out.nodes[id].cells = zellenKopie(n.cells); tabellenMasse(n, out.nodes[id]); }
       if (n.kind === "frame") out.nodes[id].layout = n.layout || "frei";
       if (n.kind === "widget") out.nodes[id].variant = n.variant || "button";
       if (n.kind === "entity") { out.nodes[id].fields = (n.fields || []).slice(); out.nodes[id].methods = (n.methods || []).slice(); }
@@ -4296,6 +4405,8 @@
         note: typeof v.note === "string" ? v.note.slice(0, 4000) : "",
         valign: valignLesen(v.valign),
         cells: v.kind === "table" ? zellenLesen(v.cells) : undefined,
+        colW: v.kind === "table" ? masseLesen(v.colW) : undefined,
+        rowH: v.kind === "table" ? masseLesen(v.rowH) : undefined,
         layout: v.kind === "frame" ? layoutLesen(v.layout) : undefined,
         variant: v.kind === "widget" ? variantLesen(v.variant) : undefined,
         fields: v.kind === "entity" ? listeLesen(v.fields) : undefined,
