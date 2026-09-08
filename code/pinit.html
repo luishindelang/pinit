@@ -847,11 +847,10 @@
           <p class="hinweis">Gilt für dieses Brett und alle, die es öffnen — wird im Brett gespeichert. „System“ folgt der Einstellung des Betrachters.</p>
           <h3>Mausrad / Touchpad</h3>
           <div class="wahl" id="einst-rad">
-            <button data-rad="auto" aria-pressed="true">Automatisch</button>
-            <button data-rad="maus" aria-pressed="false">Maus</button>
-            <button data-rad="touchpad" aria-pressed="false">Touchpad</button>
+            <button data-rad="schieben" aria-pressed="true">Rad schiebt</button>
+            <button data-rad="zoomen" aria-pressed="false">Rad zoomt</button>
           </div>
-          <p class="hinweis">Automatisch erkennt beides am Rad-Ereignis (Maus: große runde Schritte; Touchpad: kleine, auch seitliche). Maus: Rad zoomt, Umschalt+Rad schiebt waagerecht, Strg+Rad senkrecht. Touchpad: zwei Finger schieben, Kneifen (Pinch) zoomt. Falls die Erkennung danebenliegt, hier fest wählen. Gilt nur für dieses Fenster.</p>
+          <p class="hinweis">Wie in Figma: Rad schiebt die Fläche (Touchpad in alle Richtungen), <b>Strg+Rad</b> zoomt, Kneifen auf dem Touchpad zoomt, Umschalt+Rad schiebt waagerecht. „Rad zoomt“ ist für Maus-Nutzer, die ohne Strg zoomen wollen. Gilt nur für dieses Fenster.</p>
           <h3>Raster</h3>
           <p class="hinweis">An/Aus und Schrittweite stehen unten rechts am Knopf „Raster“ und gelten nur für dieses Fenster. Das Raster greift an der <b>Mitte</b> eines Elements — so liegen verschieden große Elemente auf einer Linie.</p>
         </div>
@@ -1084,7 +1083,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.28";
+  var FASSUNG = "2.29";
   var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1211,22 +1210,17 @@
   // Vorgabe 24 = Punktabstand des Hintergrunds (applyView). Schrittweite je Betrachter
   // einstellbar, 0 bis 100 px; 0 heisst frei. Beides liegt im Browser, nicht im Brett.
   var RASTER_VORGABE = 24, RASTER_MAX = 100;
-  // Mausrad-Art (2.27, Issue #3): "maus" = Rad zoomt; "touchpad" = zwei Finger schieben, Kneifen
-  // zoomt (der Browser schickt das Kneifen als Rad-Ereignis mit ctrlKey). Je Betrachter, rb.rad.
-  // Seit 2.28 Vorgabe "auto": jedes Rad-Ereignis wird einzeln eingestuft (istTouchpad).
-  var RAD_ARTEN = ["auto", "maus", "touchpad"];
-  var RAD = RAD_ARTEN.indexOf(load("rb.rad")) > 0 ? load("rb.rad") : "auto";
-  // Woran man ein Touchpad erkennt: Maus-Raeder liefern grosse, runde Schritte (100 oder 120,
-  // Firefox zaehlt in Zeilen = deltaMode 1) und nie seitlich. Ein Touchpad liefert kleine, krumme
-  // Werte, oft mit deltaX, und das Kneifen kommt als ctrlKey mit kleinen Schritten.
-  function istTouchpad(ev) {
-    if (RAD !== "auto") return RAD === "touchpad";
-    if (ev.deltaMode !== 0) return false;
-    if (ev.deltaX !== 0) return true;
-    var d = Math.abs(ev.deltaY);
-    if (d === 0) return true;
-    if (d % 100 === 0 || d % 120 === 0) return false;
-    return d < 60 || d !== Math.round(d);
+  // Mausrad (2.29, Issue #3, Figma-Regel): der Browser verraet nie, ob Maus oder Touchpad —
+  // darum gilt fuer beide dieselbe Regel: Rad schiebt (Touchpad in alle Richtungen), Strg+Rad
+  // zoomt (das Kneifen auf dem Touchpad kommt als Strg+Rad), Umschalt+Rad schiebt waagerecht.
+  // Wer mit der Maus per Rad zoomen will, stellt "zoomen" ein (je Betrachter, rb.rad).
+  // (2.27/2.28 hatten eine Touchpad-Wahl bzw. -Erkennung; 2026-09-08 von Luis verworfen.)
+  var RAD = load("rb.rad") === "zoomen" ? "zoomen" : "schieben";
+  // Zoom-Schritt aus deltaY: ein Maus-Raster (100) ergibt 1.127, das Kneifen liefert viele kleine
+  // Schritte und zoomt darum weich. Gedeckelt, damit ein grosser Sprung nicht ueberschiesst.
+  function radZoom(ev) {
+    var d = Math.max(-12, Math.min(12, ev.deltaY));
+    zoomAt(ev.clientX, ev.clientY, Math.exp(-d * 0.01));
   }
   var raster = load("rb.raster") !== "0";
   function rasterLesen(v) {
@@ -3252,22 +3246,11 @@
   });
 
   canvas.addEventListener("wheel", function (ev) {
-    ev.preventDefault();
-    // Touchpad (2.27, Issue #3): zwei Finger schieben in beide Richtungen, Kneifen kommt als
-    // Rad mit ctrlKey und feinen Schritten -> weich zoomen; Umschalt schiebt waagerecht.
-    if (istTouchpad(ev)) {
-      if (ev.ctrlKey || ev.metaKey) { zoomAt(ev.clientX, ev.clientY, Math.exp(-ev.deltaY * 0.01)); return; }
-      if (ev.shiftKey) { view.x -= ev.deltaX || ev.deltaY; applyView(); return; }
-      view.x -= ev.deltaX; view.y -= ev.deltaY; applyView(); return;
-    }
-    if (ev.shiftKey) {
-      view.x -= ev.deltaX || ev.deltaY; applyView(); return;
-    }
-    // Strg+Mausrad (2.19): senkrecht schieben. preventDefault oben haelt den Browser-Zoom fern.
-    if (ev.ctrlKey || ev.metaKey) {
-      view.y -= ev.deltaY; applyView(); return;
-    }
-    zoomAt(ev.clientX, ev.clientY, ev.deltaY < 0 ? 1.12 : 1 / 1.12);
+    ev.preventDefault();   // haelt auch den Browser-Zoom bei Strg+Rad fern
+    if (ev.ctrlKey || ev.metaKey) { radZoom(ev); return; }
+    if (ev.shiftKey) { view.x -= ev.deltaX || ev.deltaY; applyView(); return; }
+    if (RAD === "zoomen" && ev.deltaX === 0) { radZoom(ev); return; }
+    view.x -= ev.deltaX; view.y -= ev.deltaY; applyView();
   }, { passive: false });
 
   canvas.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
@@ -3890,9 +3873,9 @@
     ["Umschalt+Rahmen", "Auswahl-Rahmen ergänzt statt zu ersetzen"],
     ["Alt+Ziehen", "Nur dieses Element bewegen (sonst kommt mit, was darauf liegt)"],
     ["Ansicht", null],
-    ["Mausrad", "Zoomen — Touchpad wird erkannt: zwei Finger schieben, Kneifen zoomt (fest wählbar unter Darstellung)"],
+    ["Mausrad · zwei Finger", "Fläche schieben (unter Darstellung umstellbar auf „Rad zoomt“)"],
+    ["Strg+Mausrad · Kneifen", "Zoomen"],
     ["Umschalt+Mausrad", "Waagerecht schieben"],
-    ["Strg+Mausrad", "Senkrecht schieben (Maus) · Zoomen (Touchpad)"],
     ["Umschalt+1", "Alles einpassen"],
     ["Reiter", null],
     ["+", "Reiter anlegen (Name direkt tippen)"],
@@ -3966,7 +3949,7 @@
   }
   for (var rk = 0; rk < radKnoepfe.length; rk++) {
     radKnoepfe[rk].addEventListener("click", function () {
-      RAD = RAD_ARTEN.indexOf(this.dataset.rad) >= 0 ? this.dataset.rad : "auto";
+      RAD = this.dataset.rad === "zoomen" ? "zoomen" : "schieben";
       store("rb.rad", RAD); radAnzeigen(); einstKeysBauen();
     });
   }
