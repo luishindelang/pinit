@@ -744,12 +744,15 @@
     display: flex; align-items: center; justify-content: center;
   }
   #einst-hinter[hidden] { display: none; }
+  /* Breite ziehbar am Griff unten rechts (2.32), Hoehe folgt dem Fenster; die Breite wird je
+     Betrachter gemerkt (rb.einst.w). */
   #einst {
-    width: min(620px, calc(100vw - 32px)); max-height: min(78vh, 640px);
+    width: min(620px, calc(100vw - 32px)); min-width: 360px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
     display: flex; flex-direction: column;
     background: var(--surface); color: var(--ink);
     border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
-    overflow: hidden;
+    overflow: hidden; resize: horizontal;
   }
   #einst .einst-kopf {
     display: flex; align-items: center; gap: 10px; padding: 12px 14px 0;
@@ -763,7 +766,9 @@
     border-radius: 6px 6px 0 0; border-bottom: 2px solid transparent; padding: 7px 10px;
   }
   #einst-reiter button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
-  #einst .einst-inhalt { overflow: auto; padding: 12px 16px 16px; font-size: 13px; line-height: 1.5; }
+  /* min-height: 0 — ohne das darf ein Flex-Kind nicht kleiner werden als sein Inhalt, der Dialog
+     lief unten ueber den Rand und nichts scrollte (2.32, von Luis gemeldet). */
+  #einst .einst-inhalt { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px 16px 16px; font-size: 13px; line-height: 1.5; }
   #einst .einst-seite[hidden] { display: none; }
   #einst table.keys { width: 100%; border-collapse: collapse; }
   #einst table.keys td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -1088,7 +1093,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.31";
+  var FASSUNG = "2.32";
   var FASSUNG_DATUM = "2026-09-08";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -4001,6 +4006,16 @@
     else $("btn-help").focus({ preventScroll: true });
   }
   $("btn-help").addEventListener("click", function () { einstZeigen(einstHinter.hidden); });
+  // Breite des Dialogs merken (2.32): der Browser-Griff (resize: horizontal) aendert style.width nicht,
+  // darum ueber ResizeObserver mitschreiben und beim Oeffnen wieder anlegen.
+  (function () {
+    var e = $("einst"), w = parseInt(load("rb.einst.w"), 10);
+    if (w > 0) e.style.width = Math.min(w, window.innerWidth - 32) + "px";
+    if (window.ResizeObserver) new ResizeObserver(function () {
+      if (einstHinter.hidden) return;
+      store("rb.einst.w", String(Math.round(e.getBoundingClientRect().width)));
+    }).observe(e);
+  })();
   $("einst-zu").addEventListener("click", function () { einstZeigen(false); });
   einstHinter.addEventListener("mousedown", function (ev) { if (ev.target === einstHinter) einstZeigen(false); });
   // Tasten im Dialog gehoeren dem Dialog (Esc faengt der Fenster-Handler oben ab).
