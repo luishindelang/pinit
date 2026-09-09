@@ -1165,7 +1165,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.39";
+  var FASSUNG = "2.40";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -2778,7 +2778,7 @@
     if (w) { nw = Math.max(48, snap(nw)); nh = Math.max(30, snap(nh)); }
     if (w && ohneText({ kind: kind })) nh = nw;   // Kreise bleiben Kreise, auch nach Mindestmass und Raster
     var n = {
-      kind: kind, x: Math.round(snap(bx) - nw / 2), y: Math.round(snap(by) - nh / 2),   // Mitte rastet (2.27)
+      kind: kind, x: snap(bx - nw / 2), y: snap(by - nh / 2),   // Ecke oben links rastet (2.40)
       w: nw, h: nh, text: "", color: d.color, z: topZ() + 1, sheet: activeSheet,
       fs: 0, bold: 0, align: ""
     };
@@ -3143,13 +3143,16 @@
       var s = (hatE || hatW) && (hatS || hatN) ? Math.max(w, h) : ((hatE || hatW) ? w : h);
       s = Math.max(24, snap(s));
       w = h = s;
-    } else {
-      // Nur die gezogene Achse rastet ein — die andere bleibt, wie sie war.
-      if (hatE || hatW) w = Math.max(48, snap(w));
-      if (hatS || hatN) h = Math.max(30, snap(h));
+      if (hatW) x = d.x0 + d.w0 - w;
+      if (hatN) y = d.y0 + d.h0 - h;
+      return { x: x, y: y, w: w, h: h };
     }
-    if (hatW) x = d.x0 + d.w0 - w;
-    if (hatN) y = d.y0 + d.h0 - h;
+    // Seit 2.40 rastet die gezogene KANTE auf dem Raster (nicht das Mass): die stehende Kante
+    // bleibt exakt, die bewegte landet auf einer Rasterlinie — wie in Figma und draw.io.
+    if (hatE) w = Math.max(48, snap(d.x0 + d.w0 + dx) - d.x0);
+    if (hatW) { x = Math.min(snap(d.x0 + dx), d.x0 + d.w0 - 48); w = d.x0 + d.w0 - x; }
+    if (hatS) h = Math.max(30, snap(d.y0 + d.h0 + dy) - d.y0);
+    if (hatN) { y = Math.min(snap(d.y0 + dy), d.y0 + d.h0 - 30); h = d.y0 + d.h0 - y; }
     return { x: x, y: y, w: w, h: h };
   }
   // Position und Groesse als Zahlen im Inspektor (2.17).
@@ -3520,10 +3523,11 @@
       var n = nodes.get(drag.id); if (!n) return;
       var ddx = Math.round(p.x - drag.start.x), ddy = Math.round(p.y - drag.start.y);
       // Raster: das gezogene Element rastet ein, die Kinder ruecken um denselben Weg.
-      // Das Raster greift an der MITTE (2.27, Issue #2): verschieden grosse Elemente liegen so
-      // auf einer Linie, statt mit der Ecke oben links auf dem Raster zu haengen.
-      ddx = Math.round(snap(drag.x0 + n.w / 2 + ddx) - (drag.x0 + n.w / 2));
-      ddy = Math.round(snap(drag.y0 + n.h / 2 + ddy) - (drag.y0 + n.h / 2));
+      // Seit 2.40 rastet die ECKE oben links (wie Figma/Miro/draw.io) — die Mitte (2.27–2.39)
+      // legte die Kanten bei "Mitte ± halbe Groesse" ab, und die lagen nie auf dem Raster,
+      // sobald die Groesse kein Vielfaches war; zwei Kaesten fanden so keine gemeinsame Kante.
+      ddx = Math.round(snap(drag.x0 + ddx) - drag.x0);
+      ddy = Math.round(snap(drag.y0 + ddy) - drag.y0);
       n.x = drag.x0 + ddx;
       n.y = drag.y0 + ddy;
       drag.moved = true;
