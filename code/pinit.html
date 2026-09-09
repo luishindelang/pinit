@@ -502,6 +502,26 @@
     white-space: pre; opacity: .45; padding-right: 8px; margin-right: 8px; user-select: none;
     border-right: 1px solid var(--rand, var(--line-strong)); line-height: 1.45; max-height: 100%; overflow: hidden;
   }
+  /* Code-Farben (2.44), hell und dunkel getrennt — auf Plain-Fuellung im Dunkelmodus muss es hell bleiben. */
+  .node.code .c-com { color: #6a8a5a; font-style: italic; }
+  .node.code .c-str { color: #b45309; }
+  .node.code .c-key { color: #0e7490; }
+  .node.code .c-num { color: #7c3aed; }
+  .node.code .c-kw { color: #1d4ed8; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    .node.code .c-com { color: #8fbf7a; }
+    .node.code .c-str { color: #f0b46a; }
+    .node.code .c-key { color: #7dd3fc; }
+    .node.code .c-num { color: #c4b5fd; }
+    .node.code .c-kw { color: #93c5fd; }
+  } }
+  :root[data-theme="dark"] {
+    .node.code .c-com { color: #8fbf7a; }
+    .node.code .c-str { color: #f0b46a; }
+    .node.code .c-key { color: #7dd3fc; }
+    .node.code .c-num { color: #c4b5fd; }
+    .node.code .c-kw { color: #93c5fd; }
+  }
   .node.code .txt {
     font-family: "IBM Plex Mono", ui-monospace, monospace; text-align: left; line-height: 1.45;
     white-space: pre; overflow: auto; max-height: 100%; flex: 1; min-width: 0;
@@ -1176,7 +1196,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.43";
+  var FASSUNG = "2.44";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -2241,6 +2261,32 @@
     if ((m = UE.exec(z))) return { art: m[1].length === 1 ? "h1" : "h2", rest: m[2] };
     return { art: "", rest: z };
   }
+  // Code-Faerbung (2.44): Kommentare, Zeichenketten, Zahlen, Schluesselwoerter und JSON-Schluessel
+  // bekommen je eine Klasse. Reine Anzeige — gespeichert und getippt wird roher Text.
+  var CODE_KW = "function|var|let|const|if|else|return|for|while|do|switch|case|break|continue|class|extends|new|this|import|from|export|default|async|await|try|catch|finally|throw|typeof|instanceof|in|of|null|undefined|true|false|def|self|None|True|False|elif|lambda|pass|with|as|yield|public|private|protected|static|void|int|string|bool|float|double|struct|interface|enum|package|func|fn|impl|pub|mut|use|match|SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|JOIN|LEFT|RIGHT|INNER|ON|AND|OR|NOT|NULL|CREATE|TABLE|PRIMARY|KEY|ORDER|BY|GROUP|LIMIT|AS";
+  var CODE_RE = new RegExp(
+    "(\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*|(?:^|(?<=\\n))[ \\t]*(?:#|--)[^\\n]*)" +   // 1 Kommentar
+    "|(\"(?:[^\"\\\\\\n]|\\\\.)*\"|'(?:[^'\\\\\\n]|\\\\.)*'|`(?:[^`\\\\]|\\\\.)*`)" +      // 2 Zeichenkette
+    "|(\\b\\d+(?:\\.\\d+)?\\b)" +                                                   // 3 Zahl
+    "|(\\b(?:" + CODE_KW + ")\\b)", "g");                                             // 4 Schluesselwort
+  function codeFuellen(t, text) {
+    while (t.firstChild) t.removeChild(t.firstChild);
+    var src = text || "", last = 0, m;
+    CODE_RE.lastIndex = 0;
+    function roh(a, b) { if (b > a) t.appendChild(document.createTextNode(src.slice(a, b))); }
+    while ((m = CODE_RE.exec(src))) {
+      roh(last, m.index);
+      var sp = document.createElement("span");
+      var klasse = m[1] ? "c-com" : m[2] ? "c-str" : m[3] ? "c-num" : "c-kw";
+      // JSON-Schluessel: Zeichenkette, auf die ein Doppelpunkt folgt
+      if (klasse === "c-str" && /^\s*:/.test(src.slice(m.index + m[0].length, m.index + m[0].length + 3))) klasse = "c-key";
+      sp.className = klasse;
+      sp.textContent = m[0];
+      t.appendChild(sp);
+      last = m.index + m[0].length;
+    }
+    roh(last, src.length);
+  }
   function textFuellen(t, text, immerZeilen) {
     var zeilen = (text || "").split("\n");
     var hat = immerZeilen || zeilen.some(function (z) { return zeilenArt(z).art !== ""; });
@@ -2446,13 +2492,17 @@
       var t = document.createElement("div");
       t.className = "txt";
       if (n.kind === "code") {
-        t.textContent = n.text;
+        codeFuellen(t, n.text);
         // Zeilennummern (2.38): eigener Rand links, laeuft beim Tippen mit.
         var gut = document.createElement("div");
         gut.className = "code-gutter";
         gut.style.fontSize = schriftgrad(n) + "px";
         var zeilenNr = function () {
-          var k = (t.isContentEditable ? t.innerText : n.text || "").split("\n").length;
+          // Beim Tippen haengt Chrome hinter einem Zeilenende ein unsichtbares <br> an, damit
+          // die leere letzte Zeile einen Cursor hat — innerText endet dann auf "\n\n". Das ist
+          // EINE Zeile, nicht zwei (2.44; vorher sprang die Nummer 5 auf und wieder weg).
+          var roh = t.isContentEditable ? t.innerText.replace(/\n\n$/, "\n") : (n.text || "");
+          var k = roh.split("\n").length;
           var out = []; for (var z = 1; z <= k; z++) out.push(z);
           gut.textContent = out.join("\n");
         };
