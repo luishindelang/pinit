@@ -197,7 +197,7 @@ ein Element dazu oder wieder heraus; `Umschalt` beim Rahmenziehen ergänzt statt
 Griff leert die Mehrfachauswahl. **Die Ansicht verschiebt seit 2.0 nicht mehr das
 Auswählen-Werkzeug**, sondern `Bewegen` (H) oder die mittlere Maustaste.
 Doppelklick beschriftet ein Element oder einen Pfeil; `Strg+Enter` schließt ab, `Esc` bricht
-ab. Bei Notiz und Code steht der Cursor dabei am Ende (2.41), bei allen anderen ist der Text markiert. **Doppelklick auf leere Fläche legt einen Kasten an** (Schnellweg ohne Werkzeugwahl). `Entf` löscht die Auswahl.
+ab. Bei Notiz und Code steht der Cursor dabei am Ende (2.41), bei allen anderen ist der Text markiert. Ein weiterer Doppelklick im offenen Feld markiert das Wort (2.45, `tipptSchon()`). **Doppelklick auf leere Fläche legt einen Kasten an** (Schnellweg ohne Werkzeugwahl). `Entf` löscht die Auswahl.
 **Seit 2.13:** `Strg+D` dupliziert, `Strg+C`/`Strg+V` kopiert und fügt ein — Einzel- wie Mehrfachauswahl,
 Pfeile mit beiden Enden in der Auswahl kommen mit. Die Ablage ist **intern** (`ablage`, kein
 System-Clipboard, damit Text-Kopieren in Feldern ungestört bleibt) und lebt nur bis zum Neuladen; jedes
@@ -456,6 +456,7 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
 
   **Ausführungs-Nachweise** (das Protokoll je Fassung) stehen in
   `artefakte/NACHWEISE-2026-09-07.md` — dort **fortschreiben**, hier steht nur der jüngste:
+  - **Fassung 2.45, 2026-09-09 (Doppelklick markiert das Wort):** wird in einem Feld schon getippt, gehört ein weiterer Doppelklick dem Browser (`tipptSchon()` in der eigenen Doppelklick-Erkennung und im nativen `dblclick`-Handler; vorher schluckte `preventDefault` den Klick, `oeffneZumTippen` tat bei „schon offen“ nichts). Zellen prüfen `editing.zelle`. Schritte 2, 3, 4 grün. Schritt 5 mit ECHTER Maus: Notiz „Hallo Welt zwei“ öffnen, Doppelklick auf „Hallo“ → Markierung „Hallo “, auf „Welt“ → „Welt “ (Windows nimmt das Leerzeichen mit), Tippen bleibt offen. Schritte 6 und 7 stehen aus.
   - **Fassung 2.44, 2026-09-09 (Code: Zeilennummern, Farben):** (1) Enter im Code-Kasten ließ die Zeilennummer um zwei springen und beim Tippen wieder zurück — Chrome hängt hinter einem Zeilenende ein unsichtbares `<br>` an, `innerText` endet dann auf `
 
 `; der Zähler streicht dieses eine Ende jetzt. (2) `codeFuellen()` färbt zur Anzeige: Kommentare (`//`, `/* */`, Zeilenanfang `#`/`--`), Zeichenketten, JSON-Schlüssel (Zeichenkette vor `:`), Zahlen, Schlüsselwörter (JS/Python/Go/Rust/SQL-Auswahl, `CODE_KW`); Klassen `.c-com/.c-str/.c-key/.c-num/.c-kw`, Farben hell und dunkel getrennt (CSS-Nesting in den beiden Dunkel-Blöcken); beim Tippen bleibt roher Text. Schritte 2, 3, 4 grün. Schritt 5: Beispieltext → Klassen c-com [„// Kommentar“, „/* block */“], c-kw [const, SELECT, FROM, return, true], c-num [42, 1.5], c-key ["name", 'x'], c-str ["Luis"]; Enter nachgebaut (`insertLineBreak`, das Test-Fenster liefert kein echtes Enter): innerText endet auf `

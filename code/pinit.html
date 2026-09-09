@@ -1196,7 +1196,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.44";
+  var FASSUNG = "2.45";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -3495,6 +3495,7 @@
     if (ziel && tool === "select" && letzterKlick && jetzt - letzterKlick.t < 400 &&
         letzterKlick.typ === ziel.typ && letzterKlick.id === ziel.id) {
       letzterKlick = null;
+      if (ziel.typ === "node" && tipptSchon(ziel.id, ziel.td)) return;   // 2.45: Browser markiert das Wort
       ev.preventDefault();
       oeffneZumTippen(ziel.typ, ziel.id, ziel.td);
       return;
@@ -3777,11 +3778,19 @@
     abarbeiten();
   });
 
+  // Wird in diesem Feld schon getippt? (2.45) Dann gehoert der Doppelklick dem Browser:
+  // er markiert das Wort. Vorher schluckte preventDefault den Klick, und nichts passierte.
+  function tipptSchon(id, td) {
+    if (!editing || editing.id !== id) return false;
+    var r = td && td.dataset.r !== undefined ? +td.dataset.r : -1;
+    return editing.zelle ? (r === editing.zelle[0] && +td.dataset.c === editing.zelle[1]) : r < 0;
+  }
   canvas.addEventListener("dblclick", function (ev) {
     // Falls der Browser doch ein dblclick liefert (Element wurde nicht neu gebaut), laeuft
     // es ueber denselben Weg wie die eigene Erkennung; oeffneZumTippen ist doppelt-sicher.
     var nodeEl = ev.target.closest ? ev.target.closest(".node") : null;
     if (nodeEl) {
+      if (tipptSchon(nodeEl.dataset.id, ev.target.closest ? ev.target.closest("td") : null)) return;   // Wort markieren lassen
       ev.preventDefault();
       oeffneZumTippen("node", nodeEl.dataset.id, ev.target.closest ? ev.target.closest("td") : null);
       return;
