@@ -1196,7 +1196,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.45";
+  var FASSUNG = "2.46";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -3480,6 +3480,10 @@
       sel = { type: "node", id: nodeEl.dataset.id };
       drag = { mode: spalte ? "tblcol" : "tblrow", id: nodeEl.dataset.id, idx: +tg.dataset.idx,
                start: toBoard(ev.clientX, ev.clientY), m0: (spalte ? tn.colW : tn.rowH)[+tg.dataset.idx], griff: tg };
+      // Raster (2.46): die Trennlinie soll auf dem Raster landen, nicht das Mass. Dafuer die
+      // Brett-Position der Spalten-/Zeilen-ANFANGSKANTE merken (aus dem DOM gemessen).
+      var td0 = nodeEl.querySelector(spalte ? 'td[data-r="0"][data-c="' + tg.dataset.idx + '"]' : 'td[data-c="0"][data-r="' + tg.dataset.idx + '"]');
+      if (td0) { var tr0 = td0.getBoundingClientRect(), b0 = toBoard(tr0.left, tr0.top); drag.basis = spalte ? b0.x : b0.y; }
       tg.classList.add("zieht");
       render();
       return;
@@ -3666,7 +3670,9 @@
       var tm = nodes.get(drag.id); if (!tm) return;
       var arr = drag.mode === "tblcol" ? tm.colW : tm.rowH;
       var delta = drag.mode === "tblcol" ? p.x - drag.start.x : p.y - drag.start.y;
-      arr[drag.idx] = Math.round(Math.max(TBL_MIN_MASS, Math.min(TBL_MAX_MASS, drag.m0 + delta)));
+      var mass = drag.m0 + delta;
+      if (drag.basis !== undefined) mass = snap(drag.basis + mass) - drag.basis;   // Trennlinie rastet (2.46)
+      arr[drag.idx] = Math.round(Math.max(TBL_MIN_MASS, Math.min(TBL_MAX_MASS, mass)));
       var tel = layer.querySelector('.node[data-id="' + drag.id + '"]');
       if (tel) tabellenMassAnwenden(tel, tm);
       return;
