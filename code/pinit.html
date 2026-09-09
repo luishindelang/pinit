@@ -445,18 +445,18 @@
   }
   .node.table .txt {
     flex: none; max-height: none; padding: 6px 8px 4px;
-    border-bottom: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--rand, var(--line-strong));
   }
   /* flex: 1 — die Zeilen teilen sich die Hoehe des Kastens, keine leere Restflaeche (2.16) */
   .node.table table.tbl { width: 100%; flex: 1; border-collapse: collapse; table-layout: fixed; }
   /* Huelle um die Tabelle (2.36): traegt die Griffe, die ueber die ganze Hoehe/Breite gehen. */
   .node.table .tbl-wrap { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .node.table td {
-    border: 1px solid rgba(127,127,127,.45); padding: 3px 6px; vertical-align: top;   /* 2.38: neutral, sichtbar auf jeder Fuellung */
+    border: 1px solid var(--rand, var(--line-strong)); padding: 3px 6px; vertical-align: top;   /* 2.39: Randfarbe des Elements */
     overflow-wrap: anywhere; white-space: pre-wrap; text-align: left;
     height: 1.7em;   /* wirkt bei td als Mindesthoehe — leere Zeilen fallen sonst auf 1 px zusammen */
   }
-  .node.table tr:first-child td { font-weight: 600; background: rgba(127,127,127,.12); }
+  .node.table tr:first-child td { font-weight: 600; background: color-mix(in srgb, var(--rand, #888) 22%, transparent); }
   /* Spalten und Zeilen ziehen (2.35, wie in Excel): Griffe an der rechten Kante der Kopfzellen und an
      der unteren Kante der ersten Spalte; sichtbar beim Ueberfahren. */
   .tbl-cgrip, .tbl-rgrip { position: absolute; z-index: 2; opacity: 0; background: var(--accent); transition: opacity .12s; }
@@ -477,7 +477,7 @@
   }
   .node.frame .txt {
     flex: none; max-height: none; padding: 5px 10px;
-    background: rgba(127,127,127,.14); border-bottom: 1px solid var(--line-strong);
+    background: color-mix(in srgb, var(--rand, #888) 22%, transparent); border-bottom: 1px solid var(--rand, var(--line-strong));
   }
   .node.frame .frame-badge {
     position: absolute; top: 5px; right: 8px; pointer-events: none;
@@ -492,7 +492,7 @@
   }
   .node.code::before {
     content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22px; pointer-events: none;
-    border-bottom: 1px solid rgba(127,127,127,.35); background-color: rgba(127,127,127,.12);
+    border-bottom: 1px solid var(--rand, var(--line-strong)); background-color: color-mix(in srgb, var(--rand, #888) 22%, transparent);
     background-image: radial-gradient(circle at 11px 11px, #ff5f57 4px, transparent 5px),
       radial-gradient(circle at 27px 11px, #febc2e 4px, transparent 5px),
       radial-gradient(circle at 43px 11px, #28c840 4px, transparent 5px);
@@ -500,7 +500,7 @@
   .node.code .code-gutter {
     flex: none; font-family: "IBM Plex Mono", ui-monospace, monospace; text-align: right;
     white-space: pre; opacity: .45; padding-right: 8px; margin-right: 8px; user-select: none;
-    border-right: 1px solid rgba(127,127,127,.45); line-height: 1.45; max-height: 100%; overflow: hidden;
+    border-right: 1px solid var(--rand, var(--line-strong)); line-height: 1.45; max-height: 100%; overflow: hidden;
   }
   .node.code .txt {
     font-family: "IBM Plex Mono", ui-monospace, monospace; text-align: left; line-height: 1.45;
@@ -524,28 +524,28 @@
   }
   .node.entity .txt, .node.dbmodel .txt, .node.classmodel .txt {
     flex: none; max-height: none; padding: 5px 8px; text-align: center !important;
-    background: rgba(127,127,127,.14); border-bottom: 1px solid var(--line-strong);
+    background: color-mix(in srgb, var(--rand, #888) 22%, transparent); border-bottom: 1px solid var(--rand, var(--line-strong));
   }
   .node.entity .ent-list, .node.classmodel .ent-list {
     padding: 4px 8px; text-align: left; white-space: pre; overflow: hidden;
     font-family: "IBM Plex Mono", ui-monospace, monospace; line-height: 1.5;
   }
-  .node.entity .ent-methods { border-top: 1px dashed var(--line-strong); }
+  .node.entity .ent-methods { border-top: 1px dashed var(--rand, var(--line-strong)); }
   /* Klassen-Modell (2.38): eckig, drei Faecher mit durchgezogenen Linien wie in UML, Text in
      der normalen Schrift, Methoden-Fach immer da. */
   .node.classmodel { border-radius: 0; }
-  .node.classmodel .txt { background: none; border-bottom: 1px solid currentColor; }
+  .node.classmodel .txt { background: none; border-bottom: 1px solid var(--rand, currentColor); }
   .node.classmodel .ent-list { font-family: inherit; min-height: 1.5em; }
-  .node.classmodel .ent-methods { border-top: 1px solid currentColor; }
+  .node.classmodel .ent-methods { border-top: 1px solid var(--rand, currentColor); }
   /* DB-Modell (2.38): Name | Typ in zwei Spalten mit Linien, wie ein Schema-Diagramm. */
   .node.dbmodel { border-radius: 2px; }
-  .node.dbmodel .txt { background: none; border-bottom: 1px solid currentColor; }
+  .node.dbmodel .txt { background: none; border-bottom: 1px solid var(--rand, currentColor); }
   .node.dbmodel .db-grid {
     display: grid; grid-template-columns: max-content 1fr; text-align: left;
     line-height: 1.5; overflow: hidden;
   }
-  .node.dbmodel .db-grid span { padding: 1px 8px; border-bottom: 1px solid rgba(127,127,127,.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .node.dbmodel .db-grid .db-name { border-right: 1px solid rgba(127,127,127,.45); }
+  .node.dbmodel .db-grid span { padding: 1px 8px; border-bottom: 1px solid var(--rand, currentColor); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node.dbmodel .db-grid .db-name { border-right: 1px solid var(--rand, currentColor); }
   .node.dbmodel .db-grid .db-voll { grid-column: 1 / -1; border-right: none; }
   .node.dbmodel .db-grid span:nth-last-child(-n+2) { border-bottom: none; }
   /* UI-Bausteine (kind widget, Feld variant). Aussehen je Art — die Bedeutung steht im Feld. */
@@ -578,7 +578,7 @@
   }
   .node.widget.w-list { align-items: flex-start; padding: 0; }
   .node.widget.w-list .txt { max-height: 100%; overflow: hidden; }
-  .node.widget.w-list .txt .zl { padding: 5px 10px; border-bottom: 1px solid var(--line); min-height: 1.6em; }
+  .node.widget.w-list .txt .zl { padding: 5px 10px; border-bottom: 1px solid var(--rand, var(--line)); min-height: 1.6em; }
   .node.widget.w-menu { padding: 0 6px; }
   .node.widget.w-menu .txt { display: flex; gap: 2px; align-items: stretch; height: 100%; }
   .node.widget.w-menu .w-tab {
@@ -993,6 +993,7 @@
             <span>B</span><input id="sz-w" type="number" step="1" min="24" aria-label="Breite">
             <span>H</span><input id="sz-h" type="number" step="1" min="24" aria-label="Höhe">
           </div>
+          <button id="btn-auto" class="klein" aria-pressed="false" style="margin-top:6px" title="Größe an den Inhalt anpassen — an: passt sich bei jeder neuen Zeile mit an; Ziehen am Griff schaltet es wieder aus">⤢ Auto-Größe</button>
         </div>
         <div class="insp-field" id="widget-row" hidden>
           <label for="widget-variant">Baustein-Art</label>
@@ -1164,7 +1165,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.38";
+  var FASSUNG = "2.39";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1341,6 +1342,41 @@
     var zeile = Math.round(schriftgrad(n) * 1.5);
     return Math.max(60, 30 + 10 + z * zeile + ((n.methods || []).length || n.kind === "classmodel" ? 10 : 0));
   }
+  // Auto-Groesse (2.39): Breite und Hoehe, die Kopf + Zeilen eines Modells brauchen. Gemessen
+  // mit einem unsichtbaren Canvas in denselben Schriften wie das CSS (Sans fuer Kopf/Klasse/DB,
+  // Mono fuer Entitaet). Feld n.auto = true heisst: nach jeder Inhalts-Aenderung neu anpassen.
+  var messCtx = null;
+  function textBreite(txt, font) {
+    if (!messCtx) messCtx = document.createElement("canvas").getContext("2d");
+    messCtx.font = font;
+    return messCtx.measureText(txt).width;
+  }
+  function inhaltsMasse(n) {
+    var SANS = '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif', MONO = '"IBM Plex Mono", ui-monospace, monospace';
+    var fs = schriftgrad(n), lf = Math.max(9, fs - 1), lh = Math.round(lf * 1.5);
+    var kopfB = textBreite(n.text || "", (fett(n) ? "700 " : "400 ") + fs + "px " + SANS) + 16;
+    var kopfH = Math.ceil(fs * 1.35) + 10 + 1;
+    var fl = n.fields || [], ml = n.methods || [], w, h;
+    if (n.kind === "dbmodel") {
+      var nameB = 0, typB = 0, voll = 0;
+      fl.forEach(function (z) {
+        var i = z.indexOf(":");
+        if (i < 0) { voll = Math.max(voll, textBreite(z, lf + "px " + SANS)); return; }
+        nameB = Math.max(nameB, textBreite(z.slice(0, i).trim(), lf + "px " + SANS));
+        typB = Math.max(typB, textBreite(z.slice(i + 1).trim(), lf + "px " + SANS));
+      });
+      w = Math.max(kopfB, nameB + 17 + typB + 16, voll + 16);
+      h = kopfH + Math.max(1, fl.length) * (lh + 3);
+    } else {
+      var fam = n.kind === "classmodel" ? SANS : MONO, zb = 0;
+      fl.concat(ml).forEach(function (z) { zb = Math.max(zb, textBreite(z, lf + "px " + fam)); });
+      w = Math.max(kopfB, zb + 16);
+      h = kopfH + 8 + Math.max(1, fl.length) * lh;
+      if (ml.length || n.kind === "classmodel") h += 9 + Math.max(1, ml.length) * lh;
+    }
+    return { w: Math.max(72, Math.ceil(w) + 6), h: Math.max(48, Math.ceil(h) + 4) };
+  }
+  function autoAnpassen(n) { var m = inhaltsMasse(n); n.w = m.w; n.h = m.h; }
   function tabelleLeer() { return [["Spalte 1", "Spalte 2"], ["", ""], ["", ""]]; }
   function zellenKopie(c) { return (c || tabelleLeer()).map(function (r) { return r.slice(); }); }
   // Fremde Schreiber duerfen jede Form liefern — hier wird sie rechteckig, begrenzt, String.
@@ -2053,7 +2089,7 @@
     if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
     if (n.kind === "widget") d.variant = n.variant || "button";
-    if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
+    if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); d.auto = !!n.auto; }
     d.link = n.link || ""; d.status = statusLesen(n.status);
     track(db.doc("nodes/" + id).set(d));
   }
@@ -2360,6 +2396,9 @@
         if (n.kind === "sticky") { el.style.backgroundColor = fillOf(n); el.style.fontSize = schriftgrad(n) + "px"; }
         else el.style.background = fillOf(n);
         el.style.borderColor = "var(--s-" + n.color + ")";
+        // 2.39: alle inneren Linien (Kopfzeilen, Zellen, Faecher, Zeilennummern) in derselben Farbe
+        // wie der Rand — ueber eine Variable, damit das CSS keine Farbnamen kennen muss.
+        el.style.setProperty("--rand", "var(--s-" + n.color + ")");
         // Plain-Fuellung ist im Dunkelmodus dunkel — dann helle Schrift, fuer JEDE Bauart (F1 der
         // Pruefliste; bis 2.19 galt das nur fuer box, Rahmen/Code/Tabelle/Baustein waren unlesbar).
         if (n.color === "plain") el.style.color = "var(--node-ink-plain, var(--node-ink))";
@@ -2644,6 +2683,8 @@
       $("text-row").hidden = ohneText(n);
       $("size-row").hidden = false;
       groesseFelderSetzen(n);
+      $("btn-auto").style.display = hatFelder(n) ? "" : "none";
+      $("btn-auto").setAttribute("aria-pressed", n.auto ? "true" : "false");
       if (n.kind === "table") {
         var tf = $("tbl-text");
         if (document.activeElement !== tf) tf.value = zellenAlsText(n.cells);
@@ -2809,7 +2850,7 @@
       t.contentEditable = "false";
       el.classList.remove("editing");
       var nn = nodes.get(id);
-      if (nn && nn.text !== txt) { nn.text = txt; putNode(id); }
+      if (nn && nn.text !== txt) { nn.text = txt; if (nn.auto && hatFelder(nn)) autoAnpassen(nn); putNode(id); }
       render();
       abarbeiten();
     }
@@ -3129,6 +3170,7 @@
     else { w = Math.max(48, Math.round(w)); h = Math.max(30, Math.round(h)); }
     x = Math.round(x - w / 2); y = Math.round(y - h / 2);   // Feld = Mitte -> Ecke
     if (x === n.x && y === n.y && w === n.w && h === n.h) { groesseFelderSetzen(n); return; }
+    if (n.auto && (w !== n.w || h !== n.h)) n.auto = false;
     n.x = x; n.y = y; n.w = w; n.h = h;
     putNode(sel.id); render();
   }
@@ -3141,6 +3183,15 @@
       else if (ev.key === "Escape") { ev.preventDefault(); var n = sel && sel.type === "node" ? nodes.get(sel.id) : null; if (n) groesseFelderSetzen(n); f.blur(); }
     });
   });
+  // Auto-Groesse (2.39): an = sofort anpassen und bei jeder Inhalts-Aenderung wieder; aus = bleibt.
+  $("btn-auto").addEventListener("click", function () {
+    if (!sel || sel.type !== "node" || gesperrt()) return;
+    var n = nodes.get(sel.id); if (!n || !hatFelder(n)) return;
+    n.auto = !n.auto;
+    if (n.auto) autoAnpassen(n);
+    putNode(sel.id); render();
+    toast(n.auto ? "Auto-Größe an: das Element wächst und schrumpft mit dem Inhalt." : "Auto-Größe aus.");
+  });
   $("btn-edit").addEventListener("click", function () {
     if (!sel || sel.type !== "node" || gesperrt()) return;
     oeffneZumTippen("node", sel.id, null);
@@ -3151,6 +3202,7 @@
     if (!sel || sel.type !== "node") return;
     var n = nodes.get(sel.id); if (!n) return;
     fn(n);
+    if (n.auto && hatFelder(n)) autoAnpassen(n);
     putNode(sel.id);
     render();
   }
@@ -3574,7 +3626,11 @@
       d.kinder.forEach(function (k) { if (nodes.has(k.id)) putNode(k.id); });
       render();
     }
-    else if (d.mode === "resize") { putNode(d.id); render(); }
+    else if (d.mode === "resize") {
+      var rn = nodes.get(d.id);
+      if (rn && rn.auto) { rn.auto = false; toast("Auto-Größe aus — die Größe bleibt jetzt, wie du sie ziehst."); }
+      putNode(d.id); render();
+    }
     else if (d.mode === "tblcol" || d.mode === "tblrow") {
       var tn2 = nodes.get(d.id);
       if (tn2) {
@@ -4104,7 +4160,7 @@
     if (JSON.stringify(p.fields) === JSON.stringify(n.fields || []) &&
         JSON.stringify(p.methods) === JSON.stringify(n.methods || [])) return;
     n.fields = p.fields; n.methods = p.methods;
-    n.h = Math.max(n.h, entityHoehe(n));
+    if (n.auto) autoAnpassen(n); else n.h = Math.max(n.h, entityHoehe(n));
     putNode(sel.id);
     render();
   }
@@ -4180,7 +4236,7 @@
     if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
     if (n.kind === "widget") d.variant = n.variant || "button";
-    if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
+    if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); d.auto = !!n.auto; }
     return d;
   }
   function auswahlPaket() {
@@ -4480,7 +4536,7 @@
       if (n.kind === "table") { out.nodes[id].cells = zellenKopie(n.cells); tabellenMasse(n, out.nodes[id]); }
       if (n.kind === "frame") out.nodes[id].layout = n.layout || "frei";
       if (n.kind === "widget") out.nodes[id].variant = n.variant || "button";
-      if (hatFelder(n)) { out.nodes[id].fields = (n.fields || []).slice(); out.nodes[id].methods = (n.methods || []).slice(); }
+      if (hatFelder(n)) { out.nodes[id].fields = (n.fields || []).slice(); out.nodes[id].methods = (n.methods || []).slice(); if (n.auto) out.nodes[id].auto = true; }
       out.nodes[id].link = n.link || ""; out.nodes[id].status = statusLesen(n.status);
     });
     allEdges.forEach(function (e, id) {
@@ -4647,6 +4703,7 @@
         variant: v.kind === "widget" ? variantLesen(v.variant) : undefined,
         fields: hatFelder(v) ? listeLesen(v.fields) : undefined,
         methods: hatFelder(v) ? listeLesen(v.methods) : undefined,
+        auto: hatFelder(v) && v.auto === true,
         link: typeof v.link === "string" ? v.link.slice(0, 300) : "",
         status: statusLesen(v.status)
       });

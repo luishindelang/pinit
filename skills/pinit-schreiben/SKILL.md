@@ -40,6 +40,7 @@ ist live. Es gibt **kein Rückgängig**.
   `entity` = Entitäten-Modell (`text` Name, `fields` Array „name: Typ“, `methods` Array) ·
   `dbmodel` = DB-Modell (seit 2.38, gleicher Bau wie `entity`; Zeile „Name: Typ NN PK“ wird als zwei Spalten gezeigt) ·
   `classmodel` = Klassen-Modell (seit 2.38, gleicher Bau wie `entity`; UML-Fächer, Methoden immer sichtbar) ·
+  bei allen dreien optional `auto: true` (2.39) = die Seite passt Breite/Höhe dem Inhalt an — dann `w`/`h` nur grob setzen ·
   `code` = Code-Beispiel (reiner Text) · `start`/`end` = Anfang/Ende eines Ablaufs (kein Text).
   Ein `frame` bekommt `z` **kleiner** als alles darauf (z. B. -1), sonst liegt er davor.
 - `edges/<id>`: `from` · `to` (Element-Kennungen) · `label` ("" erlaubt) · `sheet` · `style`
