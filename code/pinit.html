@@ -628,7 +628,7 @@
      Breite laesst sich am Griff unten rechts ziehen (rechts verankert, waechst nach links) und wird
      je Betrachter gemerkt (rb.insp.w). */
   #inspector {
-    position: absolute; top: 12px; right: 12px; width: 232px; min-width: 232px; max-width: min(560px, calc(100% - 24px));
+    position: absolute; top: 12px; right: 12px; width: 232px; min-width: 232px; max-width: 60%;   /* 2.41: bis 60 % der Flaeche */
     /* 72 px = 12 oben + Zoomleiste (36 + 12 unten) + 12 Luft, damit sich beide nicht ueberschneiden (2.34) */
     max-height: calc(100% - 72px); overflow-y: auto; overflow-x: hidden;
     background: var(--surface); border: 1px solid var(--line);
@@ -1165,7 +1165,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.40";
+  var FASSUNG = "2.41";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -2835,6 +2835,9 @@
       t.focus({ preventScroll: true });
       var r = document.createRange();
       r.selectNodeContents(t);
+      // Notiz und Code (2.41): Cursor ans Ende statt alles markieren — sonst loescht der
+      // erste Tastendruck versehentlich den ganzen Text. Kurze Beschriftungen bleiben markiert.
+      if (n.kind === "sticky" || n.kind === "code") r.collapse(false);
       var s = window.getSelection();
       s.removeAllRanges(); s.addRange(r);
       t.addEventListener("blur", onBlur);
@@ -4446,7 +4449,7 @@
     });
     window.addEventListener("mousemove", function (ev) {
       if (!zieh) return;
-      var max = Math.min(560, $("stage").getBoundingClientRect().width - 24);
+      var max = Math.round($("stage").getBoundingClientRect().width * 0.6);   // 2.41: bis 60 % der Flaeche
       var w = Math.max(232, Math.min(max, zieh.w0 + (zieh.x0 - ev.clientX)));
       e.style.width = Math.round(w) + "px";
       griffLegen();
