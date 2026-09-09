@@ -91,6 +91,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 2.47 | 2026-09-09 | Code-Kasten: Text steht per Vorgabe oben statt mittig |
 | 2.46 | 2026-09-09 | Tabelle: gezogene Spalten-/Zeilen-Trennlinie rastet auf dem Raster |
 | 2.45 | 2026-09-09 | Doppelklick im offenen Textfeld markiert das Wort (Browser-Standard, vorher geschluckt) |
 | 2.44 | 2026-09-09 | Code-Kasten: Zeilennummer springt bei Enter nicht mehr doppelt; Farben für Kommentare, Zeichenketten, Zahlen, Schlüsselwörter |

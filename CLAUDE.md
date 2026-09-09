@@ -225,7 +225,7 @@ Ablage, kein Arbeitsort. Kein Rückgängig.
   (bis 2.15: slate|amber|mint|rose|lilac|plain; **seit 2.16 auch** sky|teal|lime|orange|coral|violet|sand|
   graphite — `COLORS`/`COLOR_NAMES`, Token `--f-<name>`/`--s-<name>` in allen DREI Farbblöcken;
   eine ältere Fassung zeigt bei unbekanntem Namen die Vorgabefarbe der Bauart) · `z` · `sheet` · **`fs` `bold` `align`**
-  · **`valign`** (2.17: "" = Vorgabe mittig | top | middle | bottom, `valignLesen()`/`senkrecht()`; wirkt nur bei
+  · **`valign`** (2.17: "" = Vorgabe mittig — bei Notiz und seit 2.47 bei Code oben — | top | middle | bottom, `valignLesen()`/`senkrecht()`; wirkt nur bei
   Bauarten mit frei gesetztem Text, `senkrechtMoeglich()` — nicht bei table/entity/frame/start/end/Liste/Menü)
   (seit 1.5, Textdarstellung) · **`note`** (seit 1.6: freier Langtext bis 4000 Zeichen,
   auf der Fläche nur als Ecke oben rechts markiert, im Inspektor lesbar — der Ort für
@@ -456,6 +456,7 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
 
   **Ausführungs-Nachweise** (das Protokoll je Fassung) stehen in
   `artefakte/NACHWEISE-2026-09-07.md` — dort **fortschreiben**, hier steht nur der jüngste:
+  - **Fassung 2.47, 2026-09-09 (Code oben):** Vorgabe der senkrechten Ausrichtung für `code` ist `top` (`senkrecht()`, wie bei der Notiz); wer `valign` gesetzt hat, behält es. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: neuer Code-Kasten → `align-items: flex-start`, Text 31 px unter der Oberkante (direkt unter der Kopfleiste) bei 120 px Kastenhöhe, Knopf „oben“ gedrückt. Schritte 6 und 7 stehen aus.
   - **Fassung 2.46, 2026-09-09 (Tabellen-Trennlinien rasten):** beim Ziehen einer Spalten-/Zeilen-Trennlinie rastet die LINIE auf dem Raster, nicht das Maß — `mousedown` merkt die Brett-Position der Anfangskante der Spalte/Zeile (`drag.basis`, aus dem DOM per `toBoard()`), `mousemove` rechnet `snap(basis + Maß) − basis`. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis (Raster 24, Tabelle bei −336/−168): Spalten-Griff +31 → Trennlinie bei −144, Breite 190; Zeilen-Griff +17 → Trennlinie bei −72, Höhe 67 — beide Linien Vielfache von 24. Schritte 6 und 7 stehen aus.
   - **Fassung 2.45, 2026-09-09 (Doppelklick markiert das Wort):** wird in einem Feld schon getippt, gehört ein weiterer Doppelklick dem Browser (`tipptSchon()` in der eigenen Doppelklick-Erkennung und im nativen `dblclick`-Handler; vorher schluckte `preventDefault` den Klick, `oeffneZumTippen` tat bei „schon offen“ nichts). Zellen prüfen `editing.zelle`. Schritte 2, 3, 4 grün. Schritt 5 mit ECHTER Maus: Notiz „Hallo Welt zwei“ öffnen, Doppelklick auf „Hallo“ → Markierung „Hallo “, auf „Welt“ → „Welt “ (Windows nimmt das Leerzeichen mit), Tippen bleibt offen. Schritte 6 und 7 stehen aus.
   - **Fassung 2.44, 2026-09-09 (Code: Zeilennummern, Farben):** (1) Enter im Code-Kasten ließ die Zeilennummer um zwei springen und beim Tippen wieder zurück — Chrome hängt hinter einem Zeilenende ein unsichtbares `<br>` an, `innerText` endet dann auf `

@@ -1196,7 +1196,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.46";
+  var FASSUNG = "2.47";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1238,7 +1238,7 @@
   // Spalten-Layouts mit festem Kopf, Start/Ende haben keinen Text.
   var VALIGNS = ["top", "middle", "bottom"];
   function valignLesen(v) { return VALIGNS.indexOf(v) >= 0 ? v : ""; }
-  function senkrecht(n) { return n.valign || (n.kind === "sticky" ? "top" : "middle"); }
+  function senkrecht(n) { return n.valign || (n.kind === "sticky" || n.kind === "code" ? "top" : "middle"); }   // Code seit 2.47 oben
   function senkrechtMoeglich(n) {
     return !(n.kind === "table" || hatFelder(n) || n.kind === "frame" || ohneText(n) ||
       (n.kind === "widget" && (n.variant === "list" || n.variant === "menu")));
