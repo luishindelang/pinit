@@ -91,6 +91,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 2.42 | 2026-09-09 | Smart Guides: beim Verschieben schnappen Kanten und Mitten an die Nachbarn, rote Hilfslinie; abschaltbar unter Darstellung |
 | 2.41 | 2026-09-09 | Doppelklick auf Notiz/Code setzt den Cursor ans Ende statt alles zu markieren; Inspektor bis 60 % der Fläche breit |
 | 2.40 | 2026-09-09 | Raster greift an den Kanten statt an der Mitte (Verschieben/Anlegen: Ecke oben links, Größe ziehen: gezogene Kante) — Kanten liegen wieder auf dem Raster |
 | 2.39 | 2026-09-09 | Innere Linien aller Elemente in der Randfarbe (`--rand`); Auto-Größe für Entitäten-, DB- und Klassen-Modell (Feld `auto`, Knopf im Inspektor) |
@@ -183,7 +184,7 @@ richtig zu bauen? Reihenfolge = Pakete, so abgestimmt.
 - [ ] Rückgängig (→ N7, nur eigene letzte Aktion).
 - [ ] Unsortiert aufräumen (→ E1, Preis).
 - [ ] Freihand-Zeichnen (Datenmodell vorher klären, s. oben).
-- [ ] Smart Guides beim Verschieben (Kanten und Mitten der Nachbarn, Hilfslinie) — Option 2 aus der Raster-Entscheidung 2026-09-09.
+- [x] Smart Guides beim Verschieben (2.42, abschaltbar).
 - [ ] Live-Zeiger (`room`).
 - [ ] Warnung ab 800 Elementen.
 

@@ -617,6 +617,11 @@
 
   /* Vorschau beim Aufziehen eines neuen Elements. Lebt in der Zeichenebene und
      teilt darum deren Brett-Koordinaten; renderNodes raeumt nur .node/.wire-svg weg. */
+  /* Smart Guides (2.42): rote Hilfslinien in #layer (Brett-Koordinaten), wenn eine Kante oder
+     Mitte des gezogenen Elements mit einem Nachbarn uebereinstimmt. */
+  .smart-guide { position: absolute; background: #e5484d; pointer-events: none; z-index: 8500; }
+  .smart-guide.senkrecht { top: -50000px; height: 100000px; width: 1px; }
+  .smart-guide.waagerecht { left: -50000px; width: 100000px; height: 1px; }
   #neu-vorschau {
     position: absolute; pointer-events: none; z-index: 9000;
     border: 1.5px dashed var(--accent); border-radius: 4px;
@@ -932,7 +937,13 @@
           </div>
           <p class="hinweis">Wie in Figma: Rad schiebt die Fläche (Touchpad in alle Richtungen), <b>Strg+Rad</b> zoomt, Kneifen auf dem Touchpad zoomt, Umschalt+Rad schiebt waagerecht. „Rad zoomt“ ist für Maus-Nutzer, die ohne Strg zoomen wollen. Gilt nur für dieses Fenster.</p>
           <h3>Raster</h3>
-          <p class="hinweis">An/Aus und Schrittweite stehen unten rechts am Knopf „Raster“ und gelten nur für dieses Fenster. Das Raster greift an der <b>Mitte</b> eines Elements — so liegen verschieden große Elemente auf einer Linie.</p>
+          <p class="hinweis">An/Aus und Schrittweite stehen unten rechts am Knopf „Raster“ und gelten nur für dieses Fenster. Das Raster greift an den <b>Kanten</b> eines Elements (Ecke oben links beim Verschieben, gezogene Kante beim Größe ziehen).</p>
+          <h3>Hilfslinien</h3>
+          <div class="wahl" id="einst-guides">
+            <button data-guides="an" aria-pressed="true">Hilfslinien an</button>
+            <button data-guides="aus" aria-pressed="false">Aus</button>
+          </div>
+          <p class="hinweis">Beim Verschieben schnappt das Element an Kanten und Mitten der Nachbarn ein und zeigt eine rote Linie (wie in Figma). Die Hilfslinie hat Vorrang vor dem Raster. Gilt nur für dieses Fenster.</p>
         </div>
         <div class="einst-seite" id="einst-info" hidden>
           <dl id="einst-info-liste"></dl>
@@ -1165,7 +1176,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.41";
+  var FASSUNG = "2.42";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1318,6 +1329,34 @@
   }
   var RASTER = load("rb.rasterschritt") === null ? RASTER_VORGABE : rasterLesen(load("rb.rasterschritt"));
   function snap(v) { return raster && RASTER > 0 ? Math.round(v / RASTER) * RASTER : Math.round(v); }
+  // Smart Guides (2.42, Option 2 der Raster-Entscheidung): beim Verschieben schnappt das Element
+  // an Kanten und Mitten der Nachbarn (gleicher Reiter, nicht mitgenommen) ein, wenn es naeher
+  // als GUIDE_NAEHE Bildschirm-Pixel dran ist — vor dem Raster. Je Betrachter, rb.guides.
+  var GUIDES = load("rb.guides") !== "aus";
+  var GUIDE_NAEHE = 7;
+  // Liefert fuer eine Achse die beste Verschiebung (delta) und die Linienposition, oder null.
+  // eigene / fremde: Listen von Koordinaten (links, Mitte, rechts bzw. oben, Mitte, unten).
+  function guideTreffer(eigene, fremde, naehe) {
+    var best = null;
+    eigene.forEach(function (e) {
+      fremde.forEach(function (fr) {
+        var d = fr - e;
+        if (Math.abs(d) <= naehe && (!best || Math.abs(d) < Math.abs(best.delta))) best = { delta: d, pos: fr };
+      });
+    });
+    return best;
+  }
+  function hilfslinienWeg() {
+    var alt = layer.querySelectorAll(".smart-guide");
+    for (var i = 0; i < alt.length; i++) alt[i].remove();
+  }
+  function hilfslinieZeigen(art, pos) {
+    var g = document.createElement("div");
+    g.className = "smart-guide " + art;
+    if (art === "senkrecht") g.style.left = pos + "px"; else g.style.top = pos + "px";
+    g.style[art === "senkrecht" ? "width" : "height"] = (1 / (view.k || 1)) + "px";
+    layer.appendChild(g);
+  }
   function listeLesen(v) {
     if (!Array.isArray(v)) return [];
     return v.filter(function (x) { return typeof x === "string"; })
@@ -3531,6 +3570,19 @@
       // sobald die Groesse kein Vielfaches war; zwei Kaesten fanden so keine gemeinsame Kante.
       ddx = Math.round(snap(drag.x0 + ddx) - drag.x0);
       ddy = Math.round(snap(drag.y0 + ddy) - drag.y0);
+      // Smart Guides (2.42): Kanten/Mitten der Nachbarn haben Vorrang vor dem Raster.
+      hilfslinienWeg();
+      if (GUIDES) {
+        var rohX = drag.x0 + Math.round(p.x - drag.start.x), rohY = drag.y0 + Math.round(p.y - drag.start.y);
+        var naehe = GUIDE_NAEHE / (view.k || 1);
+        var mit = {}; mit[drag.id] = 1; drag.kinder.forEach(function (k) { mit[k.id] = 1; });
+        var fx = [], fy = [];
+        nodes.forEach(function (m, mid) { if (mit[mid]) return; fx.push(m.x, m.x + m.w / 2, m.x + m.w); fy.push(m.y, m.y + m.h / 2, m.y + m.h); });
+        var tx = guideTreffer([rohX, rohX + n.w / 2, rohX + n.w], fx, naehe);
+        var ty = guideTreffer([rohY, rohY + n.h / 2, rohY + n.h], fy, naehe);
+        if (tx) { ddx = Math.round(rohX + tx.delta) - drag.x0; hilfslinieZeigen("senkrecht", tx.pos); }
+        if (ty) { ddy = Math.round(rohY + ty.delta) - drag.y0; hilfslinieZeigen("waagerecht", ty.pos); }
+      }
       n.x = drag.x0 + ddx;
       n.y = drag.y0 + ddy;
       drag.moved = true;
@@ -3628,6 +3680,7 @@
       abarbeiten();
       return;
     }
+    hilfslinienWeg();
     if (d.mode === "move" && d.moved) {
       putNode(d.id);
       d.kinder.forEach(function (k) { if (nodes.has(k.id)) putNode(k.id); });
@@ -4470,6 +4523,18 @@
   }
   // Darstellung: im Brett gespeichert (meta/board.theme); ohne Speicher im Browser-Merker.
   // Mausrad-Art (2.27): je Betrachter im Browser-Merker rb.rad.
+  // Smart Guides (2.42): je Betrachter, rb.guides = "aus" schaltet ab, alles andere = an.
+  var guidesKnoepfe = document.querySelectorAll("#einst-guides button");
+  function guidesAnzeigen() {
+    for (var i = 0; i < guidesKnoepfe.length; i++) guidesKnoepfe[i].setAttribute("aria-pressed", (guidesKnoepfe[i].dataset.guides === "aus") === !GUIDES ? "true" : "false");
+  }
+  for (var gk = 0; gk < guidesKnoepfe.length; gk++) {
+    guidesKnoepfe[gk].addEventListener("click", function () {
+      GUIDES = this.dataset.guides !== "aus";
+      store("rb.guides", GUIDES ? "an" : "aus"); guidesAnzeigen();
+    });
+  }
+  guidesAnzeigen();
   var radKnoepfe = document.querySelectorAll("#einst-rad button");
   function radAnzeigen() {
     for (var i = 0; i < radKnoepfe.length; i++) radKnoepfe[i].setAttribute("aria-pressed", radKnoepfe[i].dataset.rad === RAD ? "true" : "false");
