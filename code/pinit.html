@@ -358,6 +358,7 @@
   .wire-svg g.wire { pointer-events: auto; }
   .wire-svg path.line { fill: none; stroke: var(--edge); stroke-width: 1.6; }
   .wire-svg g.wire.sel path.line { stroke: var(--accent); stroke-width: 2.4; }
+  .wire-svg g.wire.nah path.line { stroke: var(--accent); stroke-width: 2.6; }
   .wire-svg text.elabel {
     font: 500 11px "IBM Plex Sans", sans-serif; fill: var(--ink-2);
     text-anchor: middle; dominant-baseline: middle; paint-order: stroke;
@@ -380,6 +381,9 @@
   /* Auswahl-Ring (2.18): Farbe haengt an der Fuellung (--sel wird je Element aus --r-<farbe> gesetzt,
      renderNodes) — auf hellem Blau ein warmer Ring, auf Orange ein roter, sonst Blau. */
   .node.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)), var(--shadow); }
+  /* Nachbarn (2.37, Issue #5): Elemente, die per Pfeil am gewaehlten haengen, bekommen einen
+     duennen, halb durchsichtigen Ring in ihrer eigenen Ring-Farbe — ohne Griffe. */
+  .node.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent), var(--shadow); }
   .node.link-target { box-shadow: 0 0 0 2px var(--accent); }
 
   .node.box { border-radius: 4px; border: 1.5px solid; }
@@ -407,6 +411,7 @@
   .node.diamond .dia { position: absolute; inset: 0; width: 100%; height: 100%; }
   .node.diamond .dia polygon { stroke-width: 1.5; }
   .node.diamond.sel .dia polygon { stroke: var(--sel, var(--accent)); stroke-width: 2.5; }
+  .node.diamond.nah .dia polygon { stroke: var(--sel, var(--accent)); stroke-width: 2; }
   .node.diamond .txt { position: relative; padding: 0 14%; }
   .node.text {
     background: none !important; border: none; box-shadow: none;
@@ -416,6 +421,7 @@
     color: var(--ink);
   }
   .node.text.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)); }
+  .node.text.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent); }
   /* Zeilen-Formate (2.23): eine Zeile je Block. Punkt- und Nummernzeilen mit haengendem Einzug,
      Ueberschriften "# " und "## " groesser und fett — alles aus dem rohen Text (zeilenArt). */
   .node .txt .zl { display: block; min-height: 1.35em; }
@@ -485,6 +491,8 @@
     box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
   .node.start .txt, .node.end .txt { display: none; }
   .node.start.sel, .node.end.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)); }
+  .node.start.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent); }
+  .node.end.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
   .node.end.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
   /* Datenmodell / Klasse: Name oben, Felder darunter, Methoden abgesetzt. */
   .node.entity {
@@ -506,6 +514,9 @@
      Auswahl-Ring (2.18). Diese Regel steht NACH allen Bauarten und gewinnt fuer sie. */
   .node.frame.sel, .node.widget.sel, .node.code.sel, .node.table.sel, .node.entity.sel {
     box-shadow: 0 0 0 2px var(--sel, var(--accent));
+  }
+  .node.frame.nah, .node.widget.nah, .node.code.nah, .node.table.nah, .node.entity.nah {
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent);
   }
   .node.widget .txt { text-align: left; }
   .node.widget.w-button { border-radius: 999px; justify-content: center !important; font-weight: 600; }
@@ -1113,8 +1124,8 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.36";
-  var FASSUNG_DATUM = "2026-09-08";
+  var FASSUNG = "2.37";
+  var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
   // align "" ausdruecklich "nimm die Vorgabe" — nur eine Abweichung wird gespeichert.
@@ -1467,6 +1478,7 @@
   function switchSheet(id) {
     endTabRename();
     if (id === activeSheet) return;
+    inspektorAbschliessen();   // Issue #6: getippter Inspektor-Text darf beim Reiterwechsel nicht verloren gehen
     saveView();
     if (editing) {
       var te = layer.querySelector('.node[data-id="' + editing.id + '"] .txt');
@@ -2216,8 +2228,28 @@
     gl.style.width = n.w + "px"; gl.style.height = n.h + "px";
   }
   function griffeVon(id) { return layer.querySelector('.grips[data-grip-for="' + id + '"]'); }
+  // Nachbarschaft des gewaehlten Elements (2.37, Issue #5): die Pfeile, die an ihm haengen, und
+  // die Elemente am anderen Ende. Nur bei EINEM gewaehlten Element, nicht im Sammel-Modus.
+  // Beim Zeichnen kommen Pfeile und Nachbarn ueber alles andere (Ebene topZ+1 bzw. topZ+2),
+  // damit man die Verbindungen sieht; sobald nichts mehr gewaehlt ist, gilt wieder das z.
+  function nachbarschaft() {
+    var out = { knoten: new Set(), pfeile: new Set(), an: false, hoch: 0 };
+    if (!sel || sel.type !== "node" || mehrfach() || !nodes.has(sel.id)) return out;
+    edges.forEach(function (e, id) {
+      if (e.from !== sel.id && e.to !== sel.id) return;
+      var andere = e.from === sel.id ? e.to : e.from;
+      if (!nodes.has(andere)) return;
+      out.pfeile.add(id);
+      if (andere !== sel.id) out.knoten.add(andere);
+    });
+    out.an = out.pfeile.size > 0;
+    out.hoch = topZ();
+    return out;
+  }
+
   function renderNodes() {
     if (editing && editing.finish && editing.el && editing.el.isConnected) offenesTippenAbschliessen();
+    var nah = nachbarschaft();
     // vorhandene Knoten-Elemente entfernen (SVG-Ebene bleibt)
     var old = layer.querySelectorAll(".node, .grips");
     for (var i = 0; i < old.length; i++) old[i].remove();
@@ -2229,9 +2261,10 @@
     list.forEach(function (pair) {
       var id = pair[0], n = pair[1];
       var el = document.createElement("div");
+      var istSel = (sel && sel.type === "node" && sel.id === id) || selSet.has(id);
       el.className = "node " + n.kind +
         (n.kind === "widget" ? " w-" + variantLesen(n.variant) : "") +
-        ((sel && sel.type === "node" && sel.id === id) || selSet.has(id) ? " sel" : "");
+        (istSel ? " sel" : "") + (nah.knoten.has(id) ? " nah" : "");
       el.dataset.id = id;
       el.style.setProperty("--sel", "var(--r-" + n.color + ", var(--accent))");
       el.style.left = n.x + "px";
@@ -2239,7 +2272,9 @@
       el.style.width = n.w + "px";
       el.style.height = n.h + "px";
       // Doppelte Skala: dazwischen bleibt je Ebene ein Platz für die Pfeile.
-      el.style.zIndex = String(2000 + (n.z || 0) * 2);
+      // Gewaehltes Element und seine Nachbarn liegen vorn (2.37), ihre Pfeile eine Stufe darunter.
+      var ebene = nah.an && (istSel || nah.knoten.has(id)) ? nah.hoch + 2 : (n.z || 0);
+      el.style.zIndex = String(2000 + ebene * 2);
 
       if (n.kind === "diamond") {
         var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -2372,9 +2407,11 @@
       return svg;
     }
 
+    var nah = nachbarschaft();
     edges.forEach(function (e, id) {
       var a = nodes.get(e.from), b = nodes.get(e.to);
       if (!a || !b) return;
+      var istNah = nah.pfeile.has(id);
       var ca = center(a), cb = center(b);
       var dx = cb.x - ca.x, dy = cb.y - ca.y;
       if (!dx && !dy) return;
@@ -2382,7 +2419,7 @@
 
       var g = document.createElementNS(NS, "g");
       var istSel = (sel && sel.type === "edge" && sel.id === id) || selEdges.has(id);
-      g.setAttribute("class", "wire" + (istSel ? " sel" : ""));
+      g.setAttribute("class", "wire" + (istSel ? " sel" : "") + (istNah ? " nah" : ""));
       g.dataset.edge = id;
 
       var d = "M" + p1.x + "," + p1.y + " L" + p2.x + "," + p2.y;
@@ -2398,7 +2435,7 @@
       var pf = pfeilFelder(e);
       if (pf.style === "dashed") line.setAttribute("stroke-dasharray", "7 5");
       else if (pf.style === "dotted") line.setAttribute("stroke-dasharray", "2 4");
-      var mk = pf.head === "triangle" ? (istSel ? "mk-tri-sel" : "mk-tri") : (istSel ? "mk-sel" : "mk");
+      var mk = pf.head === "triangle" ? (istSel || istNah ? "mk-tri-sel" : "mk-tri") : (istSel || istNah ? "mk-sel" : "mk");
       if (pf.ends !== "none") line.setAttribute("marker-end", "url(#" + mk + ")");
       if (pf.ends === "both") line.setAttribute("marker-start", "url(#" + mk + ")");
       g.appendChild(line);
@@ -2427,7 +2464,7 @@
       // Der Pfeil liegt auf der Ebene des tieferen seiner beiden Kästen:
       // damit deckt eine nach hinten gelegte Notiz ihn nicht mehr zu, und
       // die verbundenen Kästen bleiben trotzdem über ihm.
-      sheet(Math.min(a.z || 0, b.z || 0)).appendChild(g);
+      sheet(istNah ? nah.hoch + 1 : Math.min(a.z || 0, b.z || 0)).appendChild(g);
     });
 
     // Vorschau beim Verbinden
@@ -3158,12 +3195,16 @@
   canvas.addEventListener("mousedown", function (ev) {
     if (ev.button === 1) { startPan(ev); return; }
     if (ev.button !== 0) return;
+    // Offenes Inspektor-Feld zuerst uebernehmen (Issue #6). Das zeichnet neu — das getroffene
+    // Element gibt es dann nicht mehr, darum das Ziel unter der Maus frisch suchen.
+    var tgt = ev.target;
+    if (inspektorAbschliessen()) { var unter = document.elementFromPoint(ev.clientX, ev.clientY); if (unter) tgt = unter; }
 
-    var grip = ev.target.closest ? ev.target.closest(".grip") : null;
-    var nodeEl = ev.target.closest ? ev.target.closest(".node") : null;
+    var grip = tgt.closest ? tgt.closest(".grip") : null;
+    var nodeEl = tgt.closest ? tgt.closest(".node") : null;
     // Tabellen-Griffe (2.35): Spaltenbreite / Zeilenhoehe ziehen. Beim ersten Ziehen werden ALLE
     // aktuellen Masse festgehalten, damit sich nur die eine Spalte/Zeile aendert und der Rest bleibt.
-    var tg = ev.target.closest ? ev.target.closest(".tbl-cgrip, .tbl-rgrip") : null;
+    var tg = tgt.closest ? tgt.closest(".tbl-cgrip, .tbl-rgrip") : null;
     if (tg && nodeEl) {
       ev.preventDefault();
       if (gesperrt()) return;
@@ -3181,13 +3222,13 @@
       render();
       return;
     }
-    var wireEl = ev.target.closest ? ev.target.closest("g.wire") : null;
+    var wireEl = tgt.closest ? tgt.closest("g.wire") : null;
 
     // Doppelklick selbst erkennen (s. letzterKlick): zweiter Klick auf dasselbe Element
     // innerhalb von 400 ms, mit Auswaehlen-Werkzeug -> zum Tippen oeffnen, kein Ziehen.
     var jetzt = Date.now();
     var ziel = grip ? null
-      : nodeEl ? { typ: "node", id: nodeEl.dataset.id, td: ev.target.closest ? ev.target.closest("td") : null }
+      : nodeEl ? { typ: "node", id: nodeEl.dataset.id, td: tgt.closest ? tgt.closest("td") : null }
       : wireEl ? { typ: "edge", id: wireEl.dataset.edge } : null;
     if (ziel && tool === "select" && letzterKlick && jetzt - letzterKlick.t < 400 &&
         letzterKlick.typ === ziel.typ && letzterKlick.id === ziel.id) {
@@ -3481,6 +3522,32 @@
   canvas.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
 
   /* ============================ Tastatur ============================ */
+  // Pfeiltasten (2.37, Issue #4): die Auswahl um einen Raster-Schritt schieben (Raster aus: 1 px,
+  // mit Umschalt 10 px). Ein einzelnes Element nimmt wie beim Ziehen mit, was auf ihm liegt.
+  // Gespeichert wird gesammelt, 300 ms nach dem letzten Tastendruck — sonst schriebe eine
+  // gehaltene Taste 30 Mal je Sekunde. Solange etwas aussteht, zaehlt das als Warte-Grund.
+  var tastenOffen = new Set(), tastenTimer = null;
+  function auswahlSchieben(dx, dy, gross) {
+    if (gesperrt()) return false;
+    var ids = [];
+    if (sel && sel.type === "node" && nodes.has(sel.id)) {
+      ids.push(sel.id);
+      mitnehmer(sel.id, nodes.get(sel.id)).forEach(function (k) { ids.push(k.id); });
+    }
+    selSet.forEach(function (id) { if (nodes.has(id) && ids.indexOf(id) < 0) ids.push(id); });
+    if (!ids.length) return false;
+    var schritt = raster && RASTER > 0 ? RASTER : (gross ? 10 : 1);
+    ids.forEach(function (id) { var n = nodes.get(id); n.x += dx * schritt; n.y += dy * schritt; tastenOffen.add(id); });
+    if (tastenTimer) clearTimeout(tastenTimer);
+    tastenTimer = setTimeout(function () {
+      tastenTimer = null;
+      var offen = tastenOffen; tastenOffen = new Set();
+      offen.forEach(function (id) { if (nodes.has(id)) putNode(id); });
+      if (writes === 0) abarbeiten();
+    }, 300);
+    render();
+    return true;
+  }
   window.addEventListener("keydown", function (ev) {
     if (!einstHinter.hidden) { if (ev.key === "Escape") { ev.preventDefault(); einstZeigen(false); } return; }
     if (editing) return;
@@ -3498,6 +3565,8 @@
       if (kk === "c" && (sel || selSet.size)) { ev.preventDefault(); kopieren(); return; }
       if (kk === "v") { ev.preventDefault(); einfuegenAusAblage(); return; }
     }
+    var pfeil = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
+    if (pfeil) { if (auswahlSchieben(pfeil[0], pfeil[1], ev.shiftKey)) ev.preventDefault(); return; }
     if ((ev.key === "Enter" || ev.key === "F2") && sel && sel.type === "node") { ev.preventDefault(); if (!gesperrt()) oeffneZumTippen("node", sel.id, null); return; }
     if (ev.key === "Enter" && sel && sel.type === "edge") { ev.preventDefault(); editEdgeLabel(sel.id); return; }
     if (ev.shiftKey && ev.key === "!") { fit(); return; }
@@ -3568,6 +3637,29 @@
   });
 
   // Pfeil-Art: der eine Schreibpfad fuer Linie, Spitzen, Kopf, Endbeschriftungen.
+  // Offenes Inspektor-Feld uebernehmen (2.37, Issue #6): wer in ein Feld tippt und dann auf die
+  // Flaeche klickt, verlor den Text — das mousedown leerte die Auswahl, und das change-Ereignis
+  // kam erst danach, als sel schon null war. Darum ruft jeder, der die Auswahl wechselt (mousedown
+  // auf der Flaeche, Reiterwechsel), ZUERST diese Funktion: sie schreibt das fokussierte Feld fuer
+  // die NOCH gueltige Auswahl und nimmt ihm den Fokus. Liefert true, wenn etwas uebernommen wurde.
+  var inspAbschluss = {};   // Feld-Kennung -> Schreibfunktion (fuer Felder mit eigener Closure)
+  function inspektorAbschliessen() {
+    var ae = document.activeElement;
+    if (!ae || !$("inspector").contains(ae)) return false;
+    if (ae.tagName !== "INPUT" && ae.tagName !== "TEXTAREA") return false;
+    var id = ae.id;
+    if (id === "node-note") commitNote();
+    else if (id === "node-link") commitLink();
+    else if (id === "entity-text") commitEntity();
+    else if (id === "tbl-text") commitTblText();
+    else if (id === "edge-label") commitEdgeLabel();
+    else if (id === "sz-x" || id === "sz-y" || id === "sz-w" || id === "sz-h") groesseAusFeldern();
+    else if (inspAbschluss[id]) inspAbschluss[id]();
+    else if (ae.dataset.r !== undefined && ae.closest("#tbl-grid")) zelleSetzen(+ae.dataset.r, +ae.dataset.c, ae.value);
+    else return false;
+    ae.blur();
+    return true;
+  }
   function pfeilAendern(fn) {
     if (!sel || sel.type !== "edge") return;
     var e = edges.get(sel.id); if (!e) return;
@@ -3597,6 +3689,7 @@
       });
     }
     inp.addEventListener("change", commit);
+    inspAbschluss[id] = commit;
     inp.addEventListener("keydown", function (ev) {
       ev.stopPropagation();
       if (ev.key === "Enter") { ev.preventDefault(); commit(); inp.blur(); }
@@ -4088,6 +4181,7 @@
     ["Bearbeiten", null],
     ["Doppelklick", "Element oder Pfeil beschriften; auf leerer Fläche: Kasten anlegen"],
     ["Enter · F2", "Gewähltes Element beschriften (auch: Knopf „Text bearbeiten“ im Inspektor)"],
+    ["Pfeiltasten", "Auswahl um einen Raster-Schritt schieben (Raster aus: 1 px, Umschalt 10 px)"],
     ["Griffe ziehen", "Größe ändern an allen Ecken und Seiten; Start/Ende bleiben rund"],
     ["Tabelle: Linien ziehen", "Spaltenbreite und Zeilenhöhe an den Trennlinien wie in Excel; die Außenkanten sind der Kastenrand"],
     ["Strg+Enter", "Beschriftung abschließen"],
@@ -4385,7 +4479,7 @@
   // Kaesten einzeln nachruecken. Jetzt wird bis zur letzten Bestaetigung gewartet
   // (track() ruft abarbeiten(), sobald writes auf 0 faellt).
   function warteGrund() {
-    return !!(editing || drag || tabFeldAktiv() || writes > 0);
+    return !!(editing || drag || tabFeldAktiv() || writes > 0 || tastenOffen.size > 0);
   }
   function bedienWarteGrund() {
     // Sicherheitsnetz: ein Merker, dessen Feld nicht mehr im DOM haengt, kann nie mehr

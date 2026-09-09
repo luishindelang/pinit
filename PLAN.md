@@ -91,6 +91,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 2.37 | 2026-09-09 | GitHub-Issues #4–#6: Pfeiltasten schieben die Auswahl im Raster; gewähltes Element hebt seine Pfeile und Nachbarn hervor; Inspektor-Felder werden vor jedem Auswahlwechsel gespeichert |
 | 2.36 | 2026-09-08 | Tabelle füllt den Kasten immer ganz (letzte Spalte/Zeile nimmt den Rest), Zieh-Griffe über die ganze Höhe bzw. Breite |
 | 2.35 | 2026-09-08 | Tabelle: Spaltenbreite und Zeilenhöhe an den Kanten ziehbar wie in Excel (Felder `colW`/`rowH`); die Kopfzeile wächst nicht mehr mit dem Kasten |
 | 2.34 | 2026-09-08 | Inspektor lässt Luft zur Zoomleiste; Zieh-Griff an der linken Kante (nach links = breiter) statt Browser-Griff rechts unten |
