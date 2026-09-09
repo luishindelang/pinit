@@ -1176,7 +1176,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.42";
+  var FASSUNG = "2.43";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -3195,6 +3195,18 @@
     if (hatW) { x = Math.min(snap(d.x0 + dx), d.x0 + d.w0 - 48); w = d.x0 + d.w0 - x; }
     if (hatS) h = Math.max(30, snap(d.y0 + d.h0 + dy) - d.y0);
     if (hatN) { y = Math.min(snap(d.y0 + dy), d.y0 + d.h0 - 30); h = d.y0 + d.h0 - y; }
+    // Smart Guides (2.43): die gezogene Kante schnappt an Kanten und Mitten der Nachbarn,
+    // vor dem Raster — gemessen an der ROHEN Mausposition, mit roter Linie.
+    hilfslinienWeg();
+    if (GUIDES) {
+      var naehe = GUIDE_NAEHE / (view.k || 1), fx = [], fy = [];
+      nodes.forEach(function (o, oid) { if (oid === d.id) return; fx.push(o.x, o.x + o.w / 2, o.x + o.w); fy.push(o.y, o.y + o.h / 2, o.y + o.h); });
+      var t;
+      if (hatE && (t = guideTreffer([d.x0 + d.w0 + dx], fx, naehe)) && t.pos - d.x0 >= 48) { w = Math.round(t.pos - d.x0); hilfslinieZeigen("senkrecht", t.pos); }
+      if (hatW && (t = guideTreffer([d.x0 + dx], fx, naehe)) && d.x0 + d.w0 - t.pos >= 48) { x = Math.round(t.pos); w = d.x0 + d.w0 - x; hilfslinieZeigen("senkrecht", t.pos); }
+      if (hatS && (t = guideTreffer([d.y0 + d.h0 + dy], fy, naehe)) && t.pos - d.y0 >= 30) { h = Math.round(t.pos - d.y0); hilfslinieZeigen("waagerecht", t.pos); }
+      if (hatN && (t = guideTreffer([d.y0 + dy], fy, naehe)) && d.y0 + d.h0 - t.pos >= 30) { y = Math.round(t.pos); h = d.y0 + d.h0 - y; hilfslinieZeigen("waagerecht", t.pos); }
+    }
     return { x: x, y: y, w: w, h: h };
   }
   // Position und Groesse als Zahlen im Inspektor (2.17).
