@@ -41,7 +41,8 @@ weiterblättern — sonst fehlt Inhalt.
   frei|desktop|tablet|handy; Elemente, die geometrisch ganz darin liegen, gehören zu diesem
   Bildschirm) · `widget` = UI-Baustein (`variant` button|input|select|toggle|list|menu|image,
   `text` Beschriftung; bei `list` eine Zeile je Eintrag, bei `menu` Einträge mit `|`) ·
-  `entity` = Datenmodell/Klasse (`text` Name, `fields` Array „name: Typ“, `methods` Array) ·
+  `entity` = Entitäten-Modell (`text` Name, `fields` Array „name: Typ“, `methods` Array) ·
+  `dbmodel` = DB-Modell, `classmodel` = Klassen-Modell (seit 2.38, gleicher Bau wie `entity`: Name, `fields`, `methods`) ·
   `code` = Code-Beispiel (reiner Text) · `start`/`end` = Anfang/Ende eines Ablaufs (kein Text).
 - `edges/<id>`: `from` · `to` (Element-Kennungen) · `label` · `sheet` · `style` solid|dashed|dotted
   (durchgezogen = Klick-Weg/Ablauf, gestrichelt = Datenfluss, gepunktet = Abhängigkeit) · `ends`
@@ -94,7 +95,7 @@ Regeln:
   `▷` Vererbung; Endbeschriftungen als `A (1) → (n) B`.
 - **Elemente** danach, sortiert **nach `y`, dann `x`** (oben links zuerst). Symbole:
   ◻ box · ◇ diamond · 📝 sticky · ᵀ text · ▦ table · 🖥 frame · ▢ widget (Art in Klammern) ·
-  ⛁ entity · ⌨ code · ● start · ◎ end. Farbe nur nennen, wenn sie **nicht** die
+  ⛁ entity · ⛁ dbmodel · ▤ classmodel · ⌨ code · ● start · ◎ end. Farbe nur nennen, wenn sie **nicht** die
   Vorgabe der Bauart ist (box slate · sticky amber · diamond mint · text plain).
 - **`note`** als eingerückter Zitatblock direkt unter dem Element. Mehrzeilig erhalten.
 - **Tabellen** (`kind: "table"`) als Markdown-Tabelle direkt unter dem Element: erste Zeile aus

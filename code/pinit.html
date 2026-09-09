@@ -261,8 +261,12 @@
     flex: none;
   }
   .tab .tab-type {
-    font-size: 12px; line-height: 1; opacity: .8; padding: 0 2px; border-radius: 3px;
+    font-size: 15px; line-height: 1; opacity: .9; padding: 0 3px; border-radius: 3px;
   }
+  #tab-menu .typen { display: flex; flex-wrap: wrap; gap: 3px; padding: 2px 6px 4px; }
+  #tab-menu .typen button { width: auto; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid var(--line); }
+  #tab-menu .typen button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+  #tab-menu .typen .sym { font-size: 15px; line-height: 1; }
   .tab[aria-selected="true"] .tab-type { cursor: pointer; }
   .tab[aria-selected="true"] .tab-type:hover { background: var(--accent-soft); opacity: 1; }
   /* Reiter ziehen (2.27, Issue #1): der gezogene Reiter wird blass, die Einfuegestelle ist ein Strich. */
@@ -396,8 +400,13 @@
   /* Papierlinien als eigene Ebene unter dem Lochband, volle Breite, jede zweite Textzeile (2.24). */
   .node.sticky::after {
     content: ""; position: absolute; left: 0; right: 0; top: 26px; bottom: 0; pointer-events: none;
-    background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2.7em - 1px), var(--papier) calc(2.7em - 1px), var(--papier) 2.7em);
+    background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.6em - 1px), var(--papier) calc(1.6em - 1px), var(--papier) 1.6em);
   }
+  /* 2.38: jede Textzeile ist genau 1.6em hoch (auch Listen und Ueberschriften), damit der Text
+     immer zwischen zwei Linien steht — Linienabstand und Zeilenhoehe haengen beide am Schriftgrad. */
+  .node.sticky .txt, .node.sticky .txt .zl { line-height: 1.6em; }
+  .node.sticky .txt .zl { min-height: 1.6em; margin: 0; }
+  .node.sticky .txt .zl.h1, .node.sticky .txt .zl.h2 { font-size: inherit; }
   .node.sticky::before {
     content: ""; position: absolute; left: 0; right: 0; top: 0; height: 18px;
     background: radial-gradient(circle at 50% 50%, var(--ground) 2.2px, transparent 3px) 8px 0 / 18px 100% repeat-x;
@@ -443,7 +452,7 @@
   /* Huelle um die Tabelle (2.36): traegt die Griffe, die ueber die ganze Hoehe/Breite gehen. */
   .node.table .tbl-wrap { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .node.table td {
-    border: 1px solid var(--line); padding: 3px 6px; vertical-align: top;
+    border: 1px solid rgba(127,127,127,.45); padding: 3px 6px; vertical-align: top;   /* 2.38: neutral, sichtbar auf jeder Fuellung */
     overflow-wrap: anywhere; white-space: pre-wrap; text-align: left;
     height: 1.7em;   /* wirkt bei td als Mindesthoehe — leere Zeilen fallen sonst auf 1 px zusammen */
   }
@@ -476,13 +485,26 @@
     color: var(--ink-3);
   }
   /* Code-Kasten: Schreibmaschinenschrift, Zeilen bleiben wie getippt. */
+  /* Seit 2.38 wie ein Editor-Fenster: Kopfleiste mit drei Punkten, Zeilennummern am Rand. */
   .node.code {
-    border-radius: 4px; border: 1.5px solid; border-left-width: 4px;
-    align-items: flex-start; justify-content: flex-start; padding: 8px 10px;
+    border-radius: 6px; border: 1.5px solid;
+    align-items: flex-start; justify-content: flex-start; padding: 30px 10px 8px 8px;
+  }
+  .node.code::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22px; pointer-events: none;
+    border-bottom: 1px solid rgba(127,127,127,.35); background-color: rgba(127,127,127,.12);
+    background-image: radial-gradient(circle at 11px 11px, #ff5f57 4px, transparent 5px),
+      radial-gradient(circle at 27px 11px, #febc2e 4px, transparent 5px),
+      radial-gradient(circle at 43px 11px, #28c840 4px, transparent 5px);
+  }
+  .node.code .code-gutter {
+    flex: none; font-family: "IBM Plex Mono", ui-monospace, monospace; text-align: right;
+    white-space: pre; opacity: .45; padding-right: 8px; margin-right: 8px; user-select: none;
+    border-right: 1px solid rgba(127,127,127,.45); line-height: 1.45; max-height: 100%; overflow: hidden;
   }
   .node.code .txt {
-    font-family: "IBM Plex Mono", ui-monospace, monospace; text-align: left;
-    white-space: pre; overflow: auto; max-height: 100%;
+    font-family: "IBM Plex Mono", ui-monospace, monospace; text-align: left; line-height: 1.45;
+    white-space: pre; overflow: auto; max-height: 100%; flex: 1; min-width: 0;
   }
   /* Start (voller Kreis) und Ende (Doppelring) fuer Ablaeufe. Kein Text. */
   .node.start, .node.end { border-radius: 50%; border: 2px solid; padding: 0; box-shadow: none; }
@@ -494,28 +516,46 @@
   .node.start.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent); }
   .node.end.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
   .node.end.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
-  /* Datenmodell / Klasse: Name oben, Felder darunter, Methoden abgesetzt. */
-  .node.entity {
+  /* Entitaeten-Modell: Name oben, Felder darunter, Methoden abgesetzt. Seit 2.38 teilen sich
+     DB-Modell (dbmodel) und Klassen-Modell (classmodel) den Grundbau. */
+  .node.entity, .node.dbmodel, .node.classmodel {
     border-radius: 4px; border: 1.5px solid; padding: 0;
     flex-direction: column; align-items: stretch; justify-content: flex-start;
   }
-  .node.entity .txt {
+  .node.entity .txt, .node.dbmodel .txt, .node.classmodel .txt {
     flex: none; max-height: none; padding: 5px 8px; text-align: center !important;
     background: rgba(127,127,127,.14); border-bottom: 1px solid var(--line-strong);
   }
-  .node.entity .ent-list {
+  .node.entity .ent-list, .node.classmodel .ent-list {
     padding: 4px 8px; text-align: left; white-space: pre; overflow: hidden;
     font-family: "IBM Plex Mono", ui-monospace, monospace; line-height: 1.5;
   }
   .node.entity .ent-methods { border-top: 1px dashed var(--line-strong); }
+  /* Klassen-Modell (2.38): eckig, drei Faecher mit durchgezogenen Linien wie in UML, Text in
+     der normalen Schrift, Methoden-Fach immer da. */
+  .node.classmodel { border-radius: 0; }
+  .node.classmodel .txt { background: none; border-bottom: 1px solid currentColor; }
+  .node.classmodel .ent-list { font-family: inherit; min-height: 1.5em; }
+  .node.classmodel .ent-methods { border-top: 1px solid currentColor; }
+  /* DB-Modell (2.38): Name | Typ in zwei Spalten mit Linien, wie ein Schema-Diagramm. */
+  .node.dbmodel { border-radius: 2px; }
+  .node.dbmodel .txt { background: none; border-bottom: 1px solid currentColor; }
+  .node.dbmodel .db-grid {
+    display: grid; grid-template-columns: max-content 1fr; text-align: left;
+    line-height: 1.5; overflow: hidden;
+  }
+  .node.dbmodel .db-grid span { padding: 1px 8px; border-bottom: 1px solid rgba(127,127,127,.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node.dbmodel .db-grid .db-name { border-right: 1px solid rgba(127,127,127,.45); }
+  .node.dbmodel .db-grid .db-voll { grid-column: 1 / -1; border-right: none; }
+  .node.dbmodel .db-grid span:nth-last-child(-n+2) { border-bottom: none; }
   /* UI-Bausteine (kind widget, Feld variant). Aussehen je Art — die Bedeutung steht im Feld. */
   .node.widget { border-radius: 5px; border: 1.5px solid; box-shadow: none; }
   /* Rahmen, Baustein, Code, Tabelle, Datenmodell setzen ihren Schatten auf none und verloren damit den
      Auswahl-Ring (2.18). Diese Regel steht NACH allen Bauarten und gewinnt fuer sie. */
-  .node.frame.sel, .node.widget.sel, .node.code.sel, .node.table.sel, .node.entity.sel {
+  .node.frame.sel, .node.widget.sel, .node.code.sel, .node.table.sel, .node.entity.sel, .node.dbmodel.sel, .node.classmodel.sel {
     box-shadow: 0 0 0 2px var(--sel, var(--accent));
   }
-  .node.frame.nah, .node.widget.nah, .node.code.nah, .node.table.nah, .node.entity.nah {
+  .node.frame.nah, .node.widget.nah, .node.code.nah, .node.table.nah, .node.entity.nah, .node.dbmodel.nah, .node.classmodel.nah {
     box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent);
   }
   .node.widget .txt { text-align: left; }
@@ -1124,7 +1164,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.37";
+  var FASSUNG = "2.38";
   var FASSUNG_DATUM = "2026-09-09";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1141,13 +1181,20 @@
     // Fassungen kennen die Bauart nicht und lassen das Element einfach weg.
     table:   { w: 320, h: 150, color: "plain", label: "Tabelle",      fs: 12, bold: true,  align: "left" },
     // Paket A (seit 2.5): Software skizzieren.
-    frame:   { w: 480, h: 320, color: "plain", label: "Bildschirm",   fs: 13, bold: true,  align: "left" },
+    frame:   { w: 480, h: 320, color: "plain", label: "Rahmen",       fs: 13, bold: true,  align: "left" },
     code:    { w: 260, h: 120, color: "plain", label: "Code",         fs: 12, bold: false, align: "left" },
     start:   { w: 40,  h: 40,  color: "slate", label: "Start",        fs: 13, bold: false, align: "center" },
     end:     { w: 40,  h: 40,  color: "slate", label: "Ende",         fs: 13, bold: false, align: "center" },
     widget:  { w: 160, h: 36,  color: "plain", label: "Baustein",     fs: 13, bold: false, align: "left" },
-    entity:  { w: 200, h: 96,  color: "lilac", label: "Datenmodell",  fs: 12, bold: true,  align: "center" }
+    entity:  { w: 200, h: 96,  color: "lilac", label: "Entitäten-Modell", fs: 12, bold: true, align: "center" },
+    // 2.38: zwei weitere Modell-Bauarten mit demselben Datenbau wie entity (text, fields, methods):
+    // dbmodel = Tabelle eines DB-Schemas (Name | Typ in zwei Spalten), classmodel = UML-Klasse
+    // (Name, Felder, Methoden in drei Faechern). Aeltere Fassungen lassen sie stumm weg.
+    dbmodel:    { w: 220, h: 96, color: "plain", label: "DB-Modell",      fs: 12, bold: true, align: "center" },
+    classmodel: { w: 200, h: 96, color: "teal",  label: "Klassen-Modell", fs: 12, bold: true, align: "center" }
   };
+  // Die EINE Frage "traegt die Bauart Felder/Methoden?" — entity, dbmodel, classmodel.
+  function hatFelder(n) { return n.kind === "entity" || n.kind === "dbmodel" || n.kind === "classmodel"; }
   // Waehlbare Schriftgrade. Die Knoepfe springen von Stufe zu Stufe, damit 1-px-Schritte
   // nicht zwanzig Klicks kosten.
   var GRADE = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
@@ -1161,7 +1208,7 @@
   function valignLesen(v) { return VALIGNS.indexOf(v) >= 0 ? v : ""; }
   function senkrecht(n) { return n.valign || (n.kind === "sticky" ? "top" : "middle"); }
   function senkrechtMoeglich(n) {
-    return !(n.kind === "table" || n.kind === "entity" || n.kind === "frame" || ohneText(n) ||
+    return !(n.kind === "table" || hatFelder(n) || n.kind === "frame" || ohneText(n) ||
       (n.kind === "widget" && (n.variant === "list" || n.variant === "menu")));
   }
   function gradStufe(v, richtung) {
@@ -1292,7 +1339,7 @@
   function entityHoehe(n) {
     var z = (n.fields || []).length + (n.methods || []).length;
     var zeile = Math.round(schriftgrad(n) * 1.5);
-    return Math.max(60, 30 + 10 + z * zeile + ((n.methods || []).length ? 10 : 0));
+    return Math.max(60, 30 + 10 + z * zeile + ((n.methods || []).length || n.kind === "classmodel" ? 10 : 0));
   }
   function tabelleLeer() { return [["Spalte 1", "Spalte 2"], ["", ""], ["", ""]]; }
   function zellenKopie(c) { return (c || tabelleLeer()).map(function (r) { return r.slice(); }); }
@@ -1765,6 +1812,16 @@
   }
   var tabMenu = $("tab-menu");
   function tabMenueWeg() { tabMenu.hidden = true; }
+  // Reiter-Typ setzen (2.38): der EINE Schreibweg fuer Klick aufs Symbol und Rechtsklick-Menue.
+  function reiterTypSetzen(id, typ) {
+    if (gesperrt()) return;
+    materializeHome();
+    var sh = sheets.get(id); if (!sh) return;
+    sh.type = sheetTypeLesen(typ);
+    putSheet(id);
+    render();
+    toast("Reiter-Typ: " + SHEET_TYPE_INFO[sh.type].name);
+  }
   function tabMenueZeigen(ev, id) {
     tabMenueWeg();
     var sh = sheets.get(id) || { name: sheetName(id), group: "" };
@@ -1776,6 +1833,19 @@
     }
     knopf("Umbenennen", function () { renameSheet(id); });
     if (!gesperrt()) {
+      // Reiter-Typ (2.38): alle Typen als Knoepfe mit Symbol und Namen, der aktuelle markiert.
+      var tr0 = document.createElement("div"); tr0.className = "trenner"; tabMenu.appendChild(tr0);
+      var lab0 = document.createElement("div"); lab0.className = "hinweis"; lab0.textContent = "Reiter-Typ:"; tabMenu.appendChild(lab0);
+      var typen = document.createElement("div"); typen.className = "typen";
+      SHEET_TYPES.forEach(function (ty) {
+        var tb = document.createElement("button"); tb.type = "button";
+        tb.setAttribute("aria-pressed", (sh.type || "") === ty ? "true" : "false");
+        var sy = document.createElement("span"); sy.className = "sym"; sy.textContent = SHEET_TYPE_INFO[ty].symbol;
+        tb.appendChild(sy); tb.appendChild(document.createTextNode(SHEET_TYPE_INFO[ty].name));
+        tb.addEventListener("click", function () { tabMenueWeg(); reiterTypSetzen(id, ty); });
+        typen.appendChild(tb);
+      });
+      tabMenu.appendChild(typen);
       var tr = document.createElement("div"); tr.className = "trenner"; tabMenu.appendChild(tr);
       var lab = document.createElement("div"); lab.className = "hinweis";
       lab.textContent = sh.group ? "Gruppe (Enter übernimmt):" : "In Gruppe einsortieren (Enter):";
@@ -1844,17 +1914,12 @@
         ty.className = "tab-type";
         ty.textContent = SHEET_TYPE_INFO[s.type || ""].symbol;
         ty.title = "Reiter-Typ: " + SHEET_TYPE_INFO[s.type || ""].name +
-          (s.id === activeSheet ? " — Klick wechselt (Bildschirm, Architektur, Datenmodell, Ablauf)" : "");
+          (s.id === activeSheet ? " — Klick wechselt weiter, Rechtsklick auf den Reiter wählt direkt" : "");
         if (s.id === activeSheet) {
           ty.addEventListener("click", function (ev) {
             ev.stopPropagation();
-            if (gesperrt()) return;
-            materializeHome();
-            var sh = sheets.get(s.id); if (!sh) return;
-            sh.type = SHEET_TYPES[(SHEET_TYPES.indexOf(sh.type || "") + 1) % SHEET_TYPES.length];
-            putSheet(s.id);
-            render();
-            toast("Reiter-Typ: " + SHEET_TYPE_INFO[sh.type].name);
+            var sh = sheets.get(s.id);
+            reiterTypSetzen(s.id, SHEET_TYPES[(SHEET_TYPES.indexOf((sh && sh.type) || "") + 1) % SHEET_TYPES.length]);
           });
         }
         b.appendChild(ty);
@@ -1988,7 +2053,7 @@
     if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
     if (n.kind === "widget") d.variant = n.variant || "button";
-    if (n.kind === "entity") { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
+    if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
     d.link = n.link || ""; d.status = statusLesen(n.status);
     track(db.doc("nodes/" + id).set(d));
   }
@@ -2302,7 +2367,21 @@
 
       var t = document.createElement("div");
       t.className = "txt";
-      if (n.kind === "code") t.textContent = n.text;
+      if (n.kind === "code") {
+        t.textContent = n.text;
+        // Zeilennummern (2.38): eigener Rand links, laeuft beim Tippen mit.
+        var gut = document.createElement("div");
+        gut.className = "code-gutter";
+        gut.style.fontSize = schriftgrad(n) + "px";
+        var zeilenNr = function () {
+          var k = (t.isContentEditable ? t.innerText : n.text || "").split("\n").length;
+          var out = []; for (var z = 1; z <= k; z++) out.push(z);
+          gut.textContent = out.join("\n");
+        };
+        zeilenNr();
+        t.addEventListener("input", zeilenNr);
+        el.appendChild(gut);
+      }
       else if (n.kind === "widget" && n.variant === "list") textFuellen(t, n.text, true);
       else if (n.kind === "widget" && n.variant === "menu") menueFuellen(t, n.text);
       else textFuellen(t, n.text);
@@ -2312,7 +2391,7 @@
       t.style.fontSize = schriftgrad(n) + "px";
       t.style.fontWeight = fett(n) ? "700" : "400";
       var aus = ausricht(n);
-      t.style.width = "100%";
+      t.style.width = n.kind === "code" ? "auto" : "100%";
       t.style.textAlign = aus;
       el.style.justifyContent =
         aus === "left" ? "flex-start" : aus === "right" ? "flex-end" : "center";
@@ -2331,18 +2410,36 @@
         if (vz === "toggle") { var kn = document.createElement("span"); kn.className = "w-knob"; el.appendChild(kn); }
         if (vz === "list") el.style.justifyContent = "flex-start";
       }
-      if (n.kind === "entity") {
+      if (n.kind === "dbmodel") {
+        // DB-Modell (2.38): jede Zeile "Name: Typ" wird zu zwei Zellen, Linien dazwischen.
+        el.style.justifyContent = "flex-start";
+        var dg = document.createElement("div");
+        dg.className = "db-grid";
+        dg.style.fontSize = Math.max(9, schriftgrad(n) - 1) + "px";
+        (n.fields || []).forEach(function (z) {
+          var i = z.indexOf(":");
+          var a = document.createElement("span"), b = document.createElement("span");
+          a.className = "db-name"; b.className = "db-typ";
+          if (i < 0) { a.textContent = z; a.className += " db-voll"; dg.appendChild(a); return; }
+          a.textContent = z.slice(0, i).trim(); b.textContent = z.slice(i + 1).trim();
+          dg.appendChild(a); dg.appendChild(b);
+        });
+        if (!(n.fields || []).length) { var leer = document.createElement("span"); leer.className = "db-name db-voll"; leer.textContent = "\u00a0"; dg.appendChild(leer); }
+        el.appendChild(dg);
+      }
+      if (n.kind === "entity" || n.kind === "classmodel") {
         el.style.justifyContent = "flex-start";
         var fl = document.createElement("div");
         fl.className = "ent-list";
         fl.style.fontSize = Math.max(9, schriftgrad(n) - 1) + "px";
         fl.textContent = (n.fields || []).join("\n") || "\u00a0";
         el.appendChild(fl);
-        if (n.methods && n.methods.length) {
+        // Klassen-Modell (2.38): das Methoden-Fach steht immer, wie in UML — auch leer.
+        if ((n.methods && n.methods.length) || n.kind === "classmodel") {
           var ml = document.createElement("div");
           ml.className = "ent-list ent-methods";
           ml.style.fontSize = Math.max(9, schriftgrad(n) - 1) + "px";
-          ml.textContent = n.methods.join("\n");
+          ml.textContent = (n.methods || []).join("\n") || "\u00a0";
           el.appendChild(ml);
         }
       }
@@ -2532,13 +2629,13 @@
       $("tbl-row").hidden = n.kind !== "table";
       $("frame-row").hidden = n.kind !== "frame";
       $("widget-row").hidden = n.kind !== "widget";
-      $("entity-row").hidden = n.kind !== "entity";
+      $("entity-row").hidden = !hatFelder(n);
       $("meta-row").hidden = false;
       var lk = $("node-link");
       if (document.activeElement !== lk) lk.value = n.link || "";
       var sb = $("meta-row").querySelectorAll("button[data-status]");
       for (var si = 0; si < sb.length; si++) sb[si].setAttribute("aria-pressed", sb[si].dataset.status === statusLesen(n.status) ? "true" : "false");
-      if (n.kind === "entity") {
+      if (hatFelder(n)) {
         var ef = $("entity-text");
         if (document.activeElement !== ef) ef.value = entityText(n);
       }
@@ -2646,9 +2743,11 @@
     };
     if (kind === "table") { n.text = "Tabelle"; n.cells = tabelleLeer(); }
     // Ein Rahmen ist Traeger: er kommt HINTER alles, damit Bausteine darauf mitgehen.
-    if (kind === "frame") { n.text = "Bildschirm"; n.layout = "frei"; n.z = bottomZ() - 1; }
+    if (kind === "frame") { n.text = "Rahmen"; n.layout = "frei"; n.z = bottomZ() - 1; }
     if (kind === "code") n.text = "// Beispiel\n{ }";
     if (kind === "entity") { n.text = "Entität"; n.fields = ["id: int", "name: string"]; n.methods = []; if (!h) n.h = entityHoehe(n); }
+    if (kind === "dbmodel") { n.text = "Tabelle"; n.fields = ["ID: String NN PK", "Name: String NN"]; n.methods = []; if (!h) n.h = entityHoehe(n); }
+    if (kind === "classmodel") { n.text = "Klasse"; n.fields = ["- id: int", "- name: String"]; n.methods = ["+ speichern(): void"]; if (!h) n.h = entityHoehe(n); }
     if (kind === "widget") {
       n.variant = "button";
       n.text = VARIANTS.button.text;
@@ -2865,8 +2964,12 @@
       svg: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/>' },
     { id: "widget", key: "W", label: "Baustein", rail: 2,
       svg: '<rect x="3" y="5" width="18" height="6" rx="3"/><rect x="3" y="14" width="12" height="5" rx="1"/><path d="M18 16.5h3"/>' },
-    { id: "entity", key: "E", label: "Datenmodell", rail: 2,
+    { id: "entity", key: "E", label: "Entitäten-Modell", rail: 2,
       svg: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M4 9h16M8 13h6M8 17h8"/>' },
+    { id: "dbmodel", key: "M", label: "DB-Modell", rail: 2,
+      svg: '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M11 9v11M3 14.5h18"/>' },
+    { id: "classmodel", key: "K", label: "Klassen-Modell", rail: 2,
+      svg: '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 8.5h16M4 14.5h16"/>' },
     { id: "code", key: "C", label: "Code", rail: 2,
       svg: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14"/>' },
     { id: "start", key: "1", label: "Start", rail: 2,
@@ -3572,7 +3675,7 @@
     if (ev.shiftKey && ev.key === "!") { fit(); return; }
 
     var map = { v: "select", h: "hand", b: "box", s: "sticky", d: "diamond", t: "text", g: "table", a: "link",
-                r: "frame", c: "code", "1": "start", "0": "end", w: "widget", e: "entity" };
+                r: "frame", c: "code", "1": "start", "0": "end", w: "widget", e: "entity", m: "dbmodel", k: "classmodel" };
     var k = ev.key.toLowerCase();
     if (map[k] && !ev.metaKey && !ev.ctrlKey) { setTool(map[k]); }
   });
@@ -3995,7 +4098,7 @@
   var entityField = $("entity-text");
   function commitEntity() {
     if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n || n.kind !== "entity") return;
+    var n = nodes.get(sel.id); if (!n || !hatFelder(n)) return;
     offenesTippenAbschliessen();
     var p = entityParsen(entityField.value);
     if (JSON.stringify(p.fields) === JSON.stringify(n.fields || []) &&
@@ -4012,7 +4115,7 @@
     else if (ev.key === "Escape") {
       ev.preventDefault();
       var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
-      entityField.value = n && n.kind === "entity" ? entityText(n) : "";
+      entityField.value = n && hatFelder(n) ? entityText(n) : "";
       entityField.blur();
     }
   });
@@ -4077,7 +4180,7 @@
     if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
     if (n.kind === "widget") d.variant = n.variant || "button";
-    if (n.kind === "entity") { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
+    if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); }
     return d;
   }
   function auswahlPaket() {
@@ -4176,7 +4279,8 @@
     ["H", "Bewegen — Ziehen schiebt die Ansicht (auch: mittlere Maustaste)"],
     ["B · S · D · T · G", "Schritt · Notiz · Entscheidung · Beschriftung · Tabelle"],
     ["A", "Pfeil — von Element zu Element ziehen"],
-    ["R · W · E · C", "Rahmen · Baustein · Datenmodell · Code"],
+    ["R · W · C", "Rahmen · Baustein · Code"],
+    ["E · M · K", "Entitäten-Modell · DB-Modell · Klassen-Modell"],
     ["1 · 0", "Start · Ende"],
     ["Bearbeiten", null],
     ["Doppelklick", "Element oder Pfeil beschriften; auf leerer Fläche: Kasten anlegen"],
@@ -4206,7 +4310,7 @@
     ["Doppelklick auf Reiter", "Umbenennen"],
     ["Reiter ziehen", "Reihenfolge ändern; zwischen Reiter einer Gruppe ziehen = Gruppe beitreten, daneben = verlassen"],
     ["Gruppen-Chip ziehen", "Die ganze Gruppe verschieben"],
-    ["Rechtsklick auf Reiter", "Umbenennen · in Gruppe einsortieren · aus Gruppe lösen"],
+    ["Rechtsklick auf Reiter", "Umbenennen · Reiter-Typ wählen · in Gruppe einsortieren · aus Gruppe lösen"],
     ["Klick auf Gruppen-Chip", "Gruppe zu- oder aufklappen (nur dieses Fenster)"],
     ["× am aktiven Reiter", "Löschen (zweimal klicken) — Elemente wandern nach „Unsortiert“"]
   ];
@@ -4376,7 +4480,7 @@
       if (n.kind === "table") { out.nodes[id].cells = zellenKopie(n.cells); tabellenMasse(n, out.nodes[id]); }
       if (n.kind === "frame") out.nodes[id].layout = n.layout || "frei";
       if (n.kind === "widget") out.nodes[id].variant = n.variant || "button";
-      if (n.kind === "entity") { out.nodes[id].fields = (n.fields || []).slice(); out.nodes[id].methods = (n.methods || []).slice(); }
+      if (hatFelder(n)) { out.nodes[id].fields = (n.fields || []).slice(); out.nodes[id].methods = (n.methods || []).slice(); }
       out.nodes[id].link = n.link || ""; out.nodes[id].status = statusLesen(n.status);
     });
     allEdges.forEach(function (e, id) {
@@ -4541,8 +4645,8 @@
         rowH: v.kind === "table" ? masseLesen(v.rowH) : undefined,
         layout: v.kind === "frame" ? layoutLesen(v.layout) : undefined,
         variant: v.kind === "widget" ? variantLesen(v.variant) : undefined,
-        fields: v.kind === "entity" ? listeLesen(v.fields) : undefined,
-        methods: v.kind === "entity" ? listeLesen(v.methods) : undefined,
+        fields: hatFelder(v) ? listeLesen(v.fields) : undefined,
+        methods: hatFelder(v) ? listeLesen(v.methods) : undefined,
         link: typeof v.link === "string" ? v.link.slice(0, 300) : "",
         status: statusLesen(v.status)
       });

@@ -25,7 +25,7 @@ ist live. Es gibt **kein Rückgängig**.
    Ja abwarten. Neue Elemente anlegen und eigene Notizen setzen braucht keine Nachfrage.
 
 ## 1. Datenschema (Vertrag — genau so, kein eigenes Format)
-- `nodes/<id>`: `kind` box|sticky|diamond|text|table|**frame|widget|entity|code|start|end** · `x` `y` `w` `h` (Zahlen, Brett-Pixel;
+- `nodes/<id>`: `kind` box|sticky|diamond|text|table|**frame|widget|entity|dbmodel|classmodel|code|start|end** · `x` `y` `w` `h` (Zahlen, Brett-Pixel;
   `x`/`y` = linke obere Ecke) · `text` · `color` slate|amber|mint|rose|lilac|plain (seit 2.16 auch sky|teal|lime|orange|coral|violet|sand|graphite) ·
   `z` (0 reicht) · `sheet` (Reiter-Kennung) · `fs` 0 · `bold` 0 · `align` "" · `valign` "" (top|middle|bottom, seit 2.17) ·
   `note` (Langtext, Details, nur im Inspektor; darf "" sein) ·
@@ -37,7 +37,9 @@ ist live. Es gibt **kein Rückgängig**.
   frei|desktop|tablet|handy; Elemente, die geometrisch ganz darin liegen, gehören zu diesem
   Bildschirm) · `widget` = UI-Baustein (`variant` button|input|select|toggle|list|menu|image,
   `text` Beschriftung; bei `list` eine Zeile je Eintrag, bei `menu` Einträge mit `|`) ·
-  `entity` = Datenmodell/Klasse (`text` Name, `fields` Array „name: Typ“, `methods` Array) ·
+  `entity` = Entitäten-Modell (`text` Name, `fields` Array „name: Typ“, `methods` Array) ·
+  `dbmodel` = DB-Modell (seit 2.38, gleicher Bau wie `entity`; Zeile „Name: Typ NN PK“ wird als zwei Spalten gezeigt) ·
+  `classmodel` = Klassen-Modell (seit 2.38, gleicher Bau wie `entity`; UML-Fächer, Methoden immer sichtbar) ·
   `code` = Code-Beispiel (reiner Text) · `start`/`end` = Anfang/Ende eines Ablaufs (kein Text).
   Ein `frame` bekommt `z` **kleiner** als alles darauf (z. B. -1), sonst liegt er davor.
 - `edges/<id>`: `from` · `to` (Element-Kennungen) · `label` ("" erlaubt) · `sheet` · `style`
