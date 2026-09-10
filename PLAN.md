@@ -91,6 +91,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 2.50 | 2026-09-10 | Sichtbarkeit (Issue #8): Feld `hidden` — Element als blasser Umriss, Pfeile und alles darin unsichtbar; Knopf im Inspektor und Strg+Umschalt+H |
 | 2.49 | 2026-09-10 | Tabelle (Issue #7): Rechtsklick auf eine Zelle — Zeile/Spalte davor oder danach einfügen, Zeile/Spalte löschen |
 | 2.48 | 2026-09-10 | Performance (Issue #9): Pfeilspitzen als Pfade statt SVG-Marker, Tabellen gesammelt messen, `contain: paint` — Neuaufbau bei 273 Elementen/173 Pfeilen 250 → 22 ms |
 | 2.47 | 2026-09-09 | Code-Kasten: Text steht per Vorgabe oben statt mittig |

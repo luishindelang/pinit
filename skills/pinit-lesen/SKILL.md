@@ -54,7 +54,7 @@ weiterblättern — sonst fehlt Inhalt.
   „Gruppe <Name>“ zusammenfassen, Reihenfolge wie in der Leiste (Gruppe an der Stelle ihres ersten Mitglieds).
 - `meta/board`: `title` · `frozen` · `theme` (system|light|dark, Darstellung fürs ganze Brett, seit 2.14) — `frozen` true = **eingefrorener Stand**: im Kopf der Datei vermerken
   „Stand eingefroren“ — das ist die verbindliche Fassung, auf die gebaut wird).
-- Je Element außerdem `link` (Datei/URL/Ticket) und `status` ("" | offen | arbeit | fertig).
+- Je Element außerdem `link` (Datei/URL/Ticket) und `status` ("" | offen | arbeit | fertig); `hidden: true` (2.50) heißt ausgeblendet — im Markdown mit „(ausgeblendet)“ kennzeichnen, im Spezifikations-Modus weglassen.
 
 **Reiter-Auflösung (Waisen-Regel):** Ein Element gehört zu `sheet`, **wenn es dieses
 Dokument in `sheets` gibt**. Gibt es das nicht, gehört es zum virtuellen Reiter

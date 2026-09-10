@@ -395,6 +395,14 @@
      duennen, halb durchsichtigen Ring in ihrer eigenen Ring-Farbe — ohne Griffe. */
   .node.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent), var(--shadow); }
   .node.link-target { box-shadow: 0 0 0 2px var(--accent); }
+  /* Ausgeblendet (2.50, Issue #8): blasser, gestrichelter Umriss ohne Inhalt — man sieht noch, wo
+     man klicken muss, um es wieder einzublenden. Was ganz in einem ausgeblendeten Element liegt
+     (Mitnehmen-Regel), wird gar nicht gezeichnet, ebenso alle Pfeile daran (renderNodes/renderWires). */
+  .node.versteckt { opacity: .3; border-style: dashed !important; }
+  .node.versteckt.text { border: 1.5px dashed var(--edge) !important; }
+  .node.versteckt > *, .node.versteckt::before, .node.versteckt::after { visibility: hidden; }
+  .node.versteckt.diamond .dia { visibility: visible; }
+  .node.versteckt.diamond .dia polygon { stroke-dasharray: 6 4; }
 
   .node.box { border-radius: 4px; border: 1.5px solid; }
   /* Notizblock (2.23, ruhiger seit 2.24): Rand wie die anderen Bauarten, oben ein Lochband,
@@ -1144,6 +1152,7 @@
           <button id="btn-front"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="12" height="12" rx="1.5"/><path d="M9 21h10a2 2 0 0 0 2-2V9"/></svg>Nach vorn</button>
           <button id="btn-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="12" height="12" rx="1.5" stroke-dasharray="3 2.5"/><rect x="9" y="9" width="12" height="12" rx="1.5"/></svg>Nach hinten</button>
           <button id="btn-dup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="1.5"/><path d="M15 5V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1"/></svg>Duplizieren</button>
+          <button id="btn-hide" title="Strg+Umschalt+H"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span id="btn-hide-txt">Ausblenden</span></button>
         </div>
       </details>
 
@@ -1186,7 +1195,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.49";
+  var FASSUNG = "2.50";
   var FASSUNG_DATUM = "2026-09-10";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -1296,6 +1305,18 @@
   // Status je Element (C5). Leer = kein Status.
   var STATUS = ["", "offen", "arbeit", "fertig"];
   function statusLesen(v) { return STATUS.indexOf(v) > 0 ? v : ""; }
+  // Sichtbarkeit (2.50, Issue #8): Feld `hidden` (true = ausgeblendet) liegt im Brett, alle
+  // Betrachter und Claude sehen es. Zwei Mengen je Zeichnen: `umriss` = selbst ausgeblendet
+  // (blasser Umriss, weiter waehlbar und verschiebbar), `weg` = liegt ganz in einem ausgeblendeten
+  // Element und davor (dieselbe Regel wie Mitnehmen, mitnehmer()) -> gar nicht gezeichnet, nicht
+  // waehlbar. Pfeile an einem Element aus einer der beiden Mengen werden nicht gezeichnet.
+  function verstecktMengen() {
+    var umriss = new Set(), weg = new Set();
+    nodes.forEach(function (n, id) { if (n.hidden === true) umriss.add(id); });
+    umriss.forEach(function (id) { mitnehmer(id, nodes.get(id)).forEach(function (k) { weg.add(k.id); }); });
+    weg.forEach(function (id) { umriss.delete(id); });
+    return { umriss: umriss, weg: weg };
+  }
   // Eingefroren (C4): Wahrheit liegt in meta/board.frozen, hier nur der Spiegel.
   var frozen = false;
   // Darstellung (2.14): liegt in meta/board.theme, gilt fuer alle Betrachter. Ohne Speicher
@@ -2139,6 +2160,7 @@
     if (n.kind === "widget") d.variant = n.variant || "button";
     if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); d.auto = !!n.auto; }
     d.link = n.link || ""; d.status = statusLesen(n.status);
+    d.hidden = n.hidden === true;
     track(db.doc("nodes/" + id).set(d));
   }
   function putEdge(id) {
@@ -2433,13 +2455,15 @@
     nodes.forEach(function (n, id) { list.push([id, n]); });
     list.sort(function (a, b) { return (a[1].z || 0) - (b[1].z || 0); });
 
+    var vs = verstecktMengen();
     list.forEach(function (pair) {
       var id = pair[0], n = pair[1];
+      if (vs.weg.has(id)) return;   // liegt in einem ausgeblendeten Element (2.50)
       var el = document.createElement("div");
       var istSel = (sel && sel.type === "node" && sel.id === id) || selSet.has(id);
       el.className = "node " + n.kind +
         (n.kind === "widget" ? " w-" + variantLesen(n.variant) : "") +
-        (istSel ? " sel" : "") + (nah.knoten.has(id) ? " nah" : "");
+        (istSel ? " sel" : "") + (nah.knoten.has(id) ? " nah" : "") + (vs.umriss.has(id) ? " versteckt" : "");
       el.dataset.id = id;
       el.style.setProperty("--sel", "var(--r-" + n.color + ", var(--accent))");
       el.style.left = n.x + "px";
@@ -2640,10 +2664,11 @@
       k.setAttribute("d", kopfPfad(p, ux, uy, sw, tri));
       g.appendChild(k);
     }
-    var nah = nachbarschaft();
+    var nah = nachbarschaft(), vs = verstecktMengen();
     edges.forEach(function (e, id) {
       var a = nodes.get(e.from), b = nodes.get(e.to);
       if (!a || !b) return;
+      if (vs.umriss.has(e.from) || vs.umriss.has(e.to) || vs.weg.has(e.from) || vs.weg.has(e.to)) return;   // 2.50
       var istNah = nah.pfeile.has(id);
       var ca = center(a), cb = center(b);
       var dx = cb.x - ca.x, dy = cb.y - ca.y;
@@ -2733,6 +2758,8 @@
       $("btn-front").style.display = "none";
       $("btn-back").style.display = "none";
       $("btn-dup").style.display = "none";
+      $("btn-hide").style.display = selSet.size ? "" : "none";
+      sichtbarKnopfSetzen();
       $("text-row").hidden = true;
       $("size-row").hidden = true;
       $("edge-row").hidden = true;
@@ -2762,6 +2789,8 @@
       $("btn-front").style.display = "";
       $("btn-back").style.display = "";
       $("btn-dup").style.display = "";
+      $("btn-hide").style.display = "";
+      sichtbarKnopfSetzen();
       $("edge-row").hidden = true;
       $("text-row").hidden = false;
       $("note-row").hidden = false;
@@ -2805,6 +2834,7 @@
       $("btn-front").style.display = "none";
       $("btn-back").style.display = "none";
       $("btn-dup").style.display = "none";
+      $("btn-hide").style.display = "none";
       var e = edges.get(sel.id);
       $("text-row").hidden = true;
       $("size-row").hidden = true;
@@ -3408,6 +3438,7 @@
     if (typ === "edge") { editEdgeLabel(id); return; }
     if (!nodes.has(id)) return;
     if (ohneText(nodes.get(id))) return;
+    if (nodes.get(id).hidden === true) { toast("Ausgeblendet — erst einblenden (Strg+Umschalt+H)."); return; }   // 2.50
     selSet.clear(); selEdges.clear();
     sel = { type: "node", id: id };
     render();
@@ -3744,12 +3775,15 @@
         // Beruehren reicht (wie in Figma): ein Element zaehlt, wenn sich die Rechtecke
         // ueberschneiden — ganz einschliessen muss man es nicht. Ein Pfeil zaehlt, wenn
         // der Rahmen seine Linie (Rand zu Rand, wie gezeichnet) beruehrt.
+        var vsr = verstecktMengen();   // 2.50: Unsichtbares (in einem ausgeblendeten Element) nicht waehlen
         nodes.forEach(function (m, mid) {
+          if (vsr.weg.has(mid)) return;
           if (m.x < rx + rw && m.x + m.w > rx && m.y < ry + rh && m.y + m.h > ry) selSet.add(mid);
         });
         edges.forEach(function (e, eid) {
           var a = nodes.get(e.from), b = nodes.get(e.to);
           if (!a || !b) return;
+          if (vsr.umriss.has(e.from) || vsr.umriss.has(e.to) || vsr.weg.has(e.from) || vsr.weg.has(e.to)) return;
           var ca = center(a), cb = center(b), dx = cb.x - ca.x, dy = cb.y - ca.y;
           if (!dx && !dy) return;
           if (strichTrifft(border(a, dx, dy), border(b, -dx, -dy), rx, ry, rw, rh)) selEdges.add(eid);
@@ -3889,6 +3923,7 @@
     if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
       var kk = ev.key.toLowerCase();
       if (kk === "d") { ev.preventDefault(); duplizieren(); return; }
+      if (kk === "h" && ev.shiftKey) { ev.preventDefault(); sichtbarkeitUmschalten(); return; }   // 2.50
       if (kk === "c" && (sel || selSet.size)) { ev.preventDefault(); kopieren(); return; }
       if (kk === "v") { ev.preventDefault(); einfuegenAusAblage(); return; }
     }
@@ -4128,7 +4163,7 @@
       sichtbar("entity-row") || sichtbar("edge-row") || sichtbar("align-row"));
     $("sec-aussehen").hidden = !(sichtbar("swatches") || sichtbar("text-row"));
     $("sec-claude").hidden = !(sichtbar("meta-row") || sichtbar("note-row"));
-    $("sec-anordnen").hidden = !sichtbar("btn-front");
+    $("sec-anordnen").hidden = !(sichtbar("btn-front") || sichtbar("btn-hide"));
     var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
     var hat = !!(n && (n.status || n.link || n.note));
     $("sec-claude").querySelector("summary").classList.toggle("hat", hat);
@@ -4426,7 +4461,8 @@
       kind: n.kind, x: n.x, y: n.y, w: n.w, h: n.h,
       text: n.text, color: n.color, z: n.z || 0,
       fs: n.fs || 0, bold: n.bold || 0, align: n.align || "",
-      note: n.note || "", valign: n.valign || "", link: n.link || "", status: statusLesen(n.status)
+      note: n.note || "", valign: n.valign || "", link: n.link || "", status: statusLesen(n.status),
+      hidden: n.hidden === true
     };
     if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
@@ -4484,6 +4520,31 @@
     render();
     abarbeiten();
   }
+  // Sichtbarkeit umschalten (2.50, Issue #8): der EINE Weg fuer Knopf und Strg+Umschalt+H.
+  // Einzel- und Sammel-Auswahl; sind alle gewaehlten schon ausgeblendet, werden sie eingeblendet.
+  function sichtbarkeitsAuswahl() {
+    var ids = [];
+    if (mehrfach()) selSet.forEach(function (id) { if (nodes.has(id)) ids.push(id); });
+    else if (sel && sel.type === "node" && nodes.has(sel.id)) ids = [sel.id];
+    return ids;
+  }
+  function sichtbarKnopfSetzen() {
+    var ids = sichtbarkeitsAuswahl();
+    var alle = ids.length > 0 && ids.every(function (id) { return nodes.get(id).hidden === true; });
+    $("btn-hide-txt").textContent = alle ? "Einblenden" : "Ausblenden";
+    $("btn-hide").setAttribute("aria-pressed", alle ? "true" : "false");
+  }
+  function sichtbarkeitUmschalten() {
+    if (gesperrt()) return;
+    var ids = sichtbarkeitsAuswahl();
+    if (!ids.length) return;
+    offenesTippenAbschliessen();
+    var alle = ids.every(function (id) { return nodes.get(id).hidden === true; });
+    ids.forEach(function (id) { nodes.get(id).hidden = !alle; putNode(id); });
+    render();
+    toast(alle ? "Eingeblendet." : (ids.length === 1 ? "Ausgeblendet" : ids.length + " Elemente ausgeblendet") + " — Strg+Umschalt+H blendet wieder ein.");
+  }
+  $("btn-hide").addEventListener("click", sichtbarkeitUmschalten);
   function duplizieren() {
     var p = auswahlPaket();
     if (!p) return;
@@ -4545,6 +4606,7 @@
     ["Esc", "Beschriftung verwerfen · Auswahl aufheben · Feld schließen"],
     ["Entf / Rücktaste", "Auswahl löschen (Elemente und Pfeile)"],
     ["Strg+D", "Auswahl duplizieren (24 px versetzt)"],
+    ["Strg+Umschalt+H", "Auswahl ausblenden / einblenden: blasser Umriss ohne Inhalt; Pfeile daran und alles darin (z. B. in einem Rahmen) unsichtbar"],
     ["Strg+C · Strg+V", "Auswahl kopieren · einfügen (auch Gruppen mit Pfeilen; interne Ablage)"],
     ["Tab (in Tabelle)", "Zur nächsten Zelle springen"],
     ["Rechtsklick (Tabelle)", "Zeile oder Spalte davor/danach einfügen oder löschen — an der geklickten Zelle"],
@@ -4746,6 +4808,7 @@
       if (n.kind === "widget") out.nodes[id].variant = n.variant || "button";
       if (hatFelder(n)) { out.nodes[id].fields = (n.fields || []).slice(); out.nodes[id].methods = (n.methods || []).slice(); if (n.auto) out.nodes[id].auto = true; }
       out.nodes[id].link = n.link || ""; out.nodes[id].status = statusLesen(n.status);
+      if (n.hidden === true) out.nodes[id].hidden = true;
     });
     allEdges.forEach(function (e, id) {
       out.edges[id] = {
@@ -4913,7 +4976,8 @@
         methods: hatFelder(v) ? listeLesen(v.methods) : undefined,
         auto: hatFelder(v) && v.auto === true,
         link: typeof v.link === "string" ? v.link.slice(0, 300) : "",
-        status: statusLesen(v.status)
+        status: statusLesen(v.status),
+        hidden: v.hidden === true
       });
     });
     allNodes = next;
