@@ -1045,6 +1045,7 @@
             <button id="tbl-col-plus" class="klein" title="Spalte anhängen">+ Spalte</button>
             <button id="tbl-col-minus" class="klein" title="Letzte Spalte entfernen">− Spalte</button>
           </div>
+          <div class="tbl-masse">Rechtsklick auf eine Zelle: Zeile/Spalte davor oder danach einfügen, löschen</div>
           <details class="tbl-text-details">
             <summary>Als Text (Spalten mit |)</summary>
             <textarea id="tbl-text" placeholder="Spalte 1 | Spalte 2&#10;Wert | Wert" spellcheck="false"></textarea>
@@ -1185,7 +1186,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.48";
+  var FASSUNG = "2.49";
   var FASSUNG_DATUM = "2026-09-10";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -3836,7 +3837,16 @@
     view.x -= ev.deltaX; view.y -= ev.deltaY; applyView();
   }, { passive: false });
 
-  canvas.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
+  canvas.addEventListener("contextmenu", function (ev) {
+    ev.preventDefault();
+    // Zellen-Menue (2.49, Issue #7). Beim Tippen in der Tabelle kein Menue; eingefroren: Hinweis.
+    var td = ev.target.closest ? ev.target.closest("td[data-r]") : null;
+    var tel = td ? td.closest(".node.table") : null;
+    if (!td || !tel || !tel.dataset.id) return;
+    if (editing && editing.id === tel.dataset.id) return;
+    if (gesperrt()) return;
+    tabellenMenueZeigen(ev, tel.dataset.id, +td.dataset.r, +td.dataset.c);
+  });
 
   /* ============================ Tastatur ============================ */
   // Pfeiltasten (2.37, Issue #4): die Auswahl um einen Raster-Schritt schieben (Raster aus: 1 px,
@@ -4334,42 +4344,69 @@
     }
   });
 
-  function tabelleAendern(fn) {
-    if (!sel || sel.type !== "node") return;
+  // Seit 2.49 fuer eine bestimmte Tabelle (Zellen-Menue per Rechtsklick, Issue #7); die
+  // Inspektor-Knoepfe rufen es fuer die Auswahl. Zeilen/Spalten an beliebiger Stelle:
+  // die vier Helfer darunter sind der EINE Weg (Knoepfe = am Ende, Menue = an der Zelle).
+  function tabelleAendernFuer(id, fn) {
     offenesTippenAbschliessen();
-    var n = nodes.get(sel.id); if (!n || n.kind !== "table") return;
+    var n = nodes.get(id); if (!n || n.kind !== "table") return;
     if (!n.cells) n.cells = tabelleLeer();
     if (fn(n) === false) return;
-    putNode(sel.id); render();
+    putNode(id); render();
   }
-  $("tbl-row-plus").addEventListener("click", function () {
-    tabelleAendern(function (n) {
-      if (n.cells.length >= TBL_MAX_ZEILEN) { toast("Höchstens " + TBL_MAX_ZEILEN + " Zeilen."); return false; }
-      n.cells.push(n.cells[0].map(function () { return ""; }));
-      if (masseGueltig(n.rowH, n.cells.length - 1)) n.rowH.push(n.rowH[n.rowH.length - 1]);
-    });
-  });
-  $("tbl-row-minus").addEventListener("click", function () {
-    tabelleAendern(function (n) {
-      if (n.cells.length <= 1) { toast("Die Kopfzeile bleibt."); return false; }
-      n.cells.pop();
-      if (masseGueltig(n.rowH, n.cells.length + 1)) n.rowH.pop();
-    });
-  });
-  $("tbl-col-plus").addEventListener("click", function () {
-    tabelleAendern(function (n) {
-      if (n.cells[0].length >= TBL_MAX_SPALTEN) { toast("Höchstens " + TBL_MAX_SPALTEN + " Spalten."); return false; }
-      n.cells.forEach(function (r) { r.push(""); });
-      if (masseGueltig(n.colW, n.cells[0].length - 1)) n.colW.push(n.colW[n.colW.length - 1]);
-    });
-  });
-  $("tbl-col-minus").addEventListener("click", function () {
-    tabelleAendern(function (n) {
-      if (n.cells[0].length <= 1) { toast("Eine Spalte bleibt."); return false; }
-      n.cells.forEach(function (r) { r.pop(); });
-      if (masseGueltig(n.colW, n.cells[0].length + 1)) n.colW.pop();
-    });
-  });
+  function tabelleAendern(fn) {
+    if (!sel || sel.type !== "node") return;
+    tabelleAendernFuer(sel.id, fn);
+  }
+  function zeileEinfuegen(n, at) {
+    if (n.cells.length >= TBL_MAX_ZEILEN) { toast("Höchstens " + TBL_MAX_ZEILEN + " Zeilen."); return false; }
+    n.cells.splice(at, 0, n.cells[0].map(function () { return ""; }));
+    if (masseGueltig(n.rowH, n.cells.length - 1)) n.rowH.splice(at, 0, n.rowH[Math.min(Math.max(at - 1, 0), n.rowH.length - 1)]);   // Mass der Zeile davor
+  }
+  function zeileLoeschen(n, at) {
+    if (n.cells.length <= 1) { toast("Eine Zeile bleibt."); return false; }
+    n.cells.splice(at, 1);
+    if (masseGueltig(n.rowH, n.cells.length + 1)) n.rowH.splice(at, 1);
+  }
+  function spalteEinfuegen(n, at) {
+    if (n.cells[0].length >= TBL_MAX_SPALTEN) { toast("Höchstens " + TBL_MAX_SPALTEN + " Spalten."); return false; }
+    n.cells.forEach(function (r) { r.splice(at, 0, ""); });
+    if (masseGueltig(n.colW, n.cells[0].length - 1)) n.colW.splice(at, 0, n.colW[Math.min(Math.max(at - 1, 0), n.colW.length - 1)]);   // Mass der Spalte davor
+  }
+  function spalteLoeschen(n, at) {
+    if (n.cells[0].length <= 1) { toast("Eine Spalte bleibt."); return false; }
+    n.cells.forEach(function (r) { r.splice(at, 1); });
+    if (masseGueltig(n.colW, n.cells[0].length + 1)) n.colW.splice(at, 1);
+  }
+  $("tbl-row-plus").addEventListener("click", function () { tabelleAendern(function (n) { return zeileEinfuegen(n, n.cells.length); }); });
+  $("tbl-row-minus").addEventListener("click", function () { tabelleAendern(function (n) { return zeileLoeschen(n, n.cells.length - 1); }); });
+  $("tbl-col-plus").addEventListener("click", function () { tabelleAendern(function (n) { return spalteEinfuegen(n, n.cells[0].length); }); });
+  $("tbl-col-minus").addEventListener("click", function () { tabelleAendern(function (n) { return spalteLoeschen(n, n.cells[0].length - 1); }); });
+  // Zellen-Menue (2.49, Issue #7): Rechtsklick auf eine Zelle — Zeile/Spalte davor oder danach
+  // einfuegen, Zeile/Spalte loeschen. Nutzt das Reiter-Menue-Element (#tab-menu) als Huelle.
+  function tabellenMenueZeigen(ev, id, r, c) {
+    tabMenueWeg();
+    var n = nodes.get(id); if (!n || n.kind !== "table") return;
+    if (!(sel && sel.type === "node" && sel.id === id)) { sel = { type: "node", id: id }; selSet.clear(); selEdges.clear(); render(); }
+    while (tabMenu.firstChild) tabMenu.removeChild(tabMenu.firstChild);
+    var lab = document.createElement("div"); lab.className = "hinweis";
+    lab.textContent = "Zeile " + (r + 1) + " · Spalte " + (c + 1); tabMenu.appendChild(lab);
+    function knopf(text, fn) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = text;
+      b.addEventListener("click", function () { tabMenueWeg(); tabelleAendernFuer(id, fn); });
+      tabMenu.appendChild(b);
+    }
+    knopf("Zeile davor einfügen", function (t) { return zeileEinfuegen(t, r); });
+    knopf("Zeile danach einfügen", function (t) { return zeileEinfuegen(t, r + 1); });
+    knopf("Zeile löschen", function (t) { return zeileLoeschen(t, r); });
+    var tr = document.createElement("div"); tr.className = "trenner"; tabMenu.appendChild(tr);
+    knopf("Spalte davor einfügen", function (t) { return spalteEinfuegen(t, c); });
+    knopf("Spalte danach einfügen", function (t) { return spalteEinfuegen(t, c + 1); });
+    knopf("Spalte löschen", function (t) { return spalteLoeschen(t, c); });
+    tabMenu.hidden = false;
+    tabMenu.style.left = Math.max(0, Math.min(ev.clientX, window.innerWidth - 220)) + "px";
+    tabMenu.style.top = Math.max(0, Math.min(ev.clientY, window.innerHeight - 260)) + "px";
+  }
 
   $("btn-back").addEventListener("click", function () {
     if (!sel || sel.type !== "node") return;
@@ -4510,6 +4547,7 @@
     ["Strg+D", "Auswahl duplizieren (24 px versetzt)"],
     ["Strg+C · Strg+V", "Auswahl kopieren · einfügen (auch Gruppen mit Pfeilen; interne Ablage)"],
     ["Tab (in Tabelle)", "Zur nächsten Zelle springen"],
+    ["Rechtsklick (Tabelle)", "Zeile oder Spalte davor/danach einfügen oder löschen — an der geklickten Zelle"],
     ["Auswahl", null],
     ["Umschalt+Klick", "Element oder Pfeil zur Auswahl hinzufügen oder entfernen"],
     ["Umschalt+Rahmen", "Auswahl-Rahmen ergänzt statt zu ersetzen"],
