@@ -26,3 +26,7 @@ build/
 dist/
 out/
 release/
+
+# Pruef-Geschirr (code/pruefung/mk-test.js) und Claude-Code-Startdatei
+code/_t.html
+.claude/

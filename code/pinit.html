@@ -20,6 +20,10 @@
     --danger: #a83232;
     --shadow: 0 1px 2px rgba(23,34,48,.10), 0 8px 24px rgba(23,34,48,.08);
     --shadow-sm: 0 1px 2px rgba(23,34,48,.12);
+    --ok: #3f9a6a;      /* Statuspunkt „fertig“, Speicher-Punkt „gespeichert“ */
+    --warn: #d3ab5c;    /* Statuspunkt „in Arbeit“ */
+    /* Code-Farben (2.44): Kommentar, Zeichenkette, JSON-Schlüssel, Zahl, Schlüsselwort */
+    --c-com: #6a8a5a; --c-str: #b45309; --c-key: #0e7490; --c-num: #7c3aed; --c-kw: #1d4ed8;
 
     /* Knoten-Füllungen: Schlüssel -> Füllung / Kontur, Text immer --node-ink */
     --node-ink: #172230;
@@ -43,6 +47,11 @@
     --r-violet: #4c1d95; --r-lilac: #5b21b6;  --r-sky: #c2410c;      --r-teal: #c2410c;
     --r-mint: #b45309;   --r-lime: #7c2d12;
   }
+  /* Die Dunkel-Palette steht bewusst ZWEIMAL: einmal fuer die System-Einstellung (Media-Query, solange
+     das Brett nicht ausdruecklich auf Hell steht) und einmal fuer die Wahl „Dunkel“ im Brett. Eine
+     Media-Query und ein Attribut lassen sich in CSS nicht in EINER Regel verbinden; light-dark() koennte es,
+     schaltet aber ueber color-scheme auch Bildlaufleisten und Formularfelder um — darum nicht. Wer eine
+     Farbe aendert, aendert sie in beiden Bloecken. */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --ground: #141b23;
@@ -82,6 +91,7 @@
       --r-mint: #ffcc66;   --r-lime: #ffcc66;
       --node-ink-plain: #e6ecf2;
       --papier: rgba(255,255,255,.10);
+      --c-com: #8fbf7a; --c-str: #f0b46a; --c-key: #7dd3fc; --c-num: #c4b5fd; --c-kw: #93c5fd;
     }
   }
   :root[data-theme="dark"] {
@@ -122,9 +132,15 @@
     --r-mint: #ffcc66;   --r-lime: #ffcc66;
     --node-ink-plain: #e6ecf2;
     --papier: rgba(255,255,255,.10);
+    --c-com: #8fbf7a; --c-str: #f0b46a; --c-key: #7dd3fc; --c-num: #c4b5fd; --c-kw: #93c5fd;
   }
 
   * { box-sizing: border-box; }
+  /* EINE Regel fuer das hidden-Attribut (3.00): Autoren-Regeln wie .tab { display: inline-flex } oder
+     button { display: inline-flex } schlagen sonst die Browser-Regel, und ein hidden-Element blieb sichtbar
+     (2.31 real bei den Reiter-Gruppen). Die Artifact-Huelle setzt dieselbe Regel; so verhaelt sich die Datei
+     lokal wie veroeffentlicht. */
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     background: var(--ground);
@@ -138,12 +154,7 @@
   html, body { overflow: hidden; max-width: 100%; }
   #app { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; overflow: hidden; }
   .tgrp button.klein { padding: 5px 0; font-size: 11px; }
-  .tgrp input {
-    flex: 1 1 0; min-width: 0;
-    font: 400 12px/1.2 "IBM Plex Sans", sans-serif; color: var(--ink); background: var(--surface-2);
-    border: 1px solid var(--line); border-radius: 5px; padding: 5px 6px;
-  }
-  .tgrp input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  .tgrp input { flex: 1 1 0; min-width: 0; }
   /* Ziehen auf der Fläche darf keine Bedienelement-Texte markieren */
   header, #tabs, #inspector, #status, #zoombar, #hint, #toast { user-select: none; }
   #title { user-select: text; }
@@ -269,10 +280,8 @@
   .tab[aria-selected="true"] .tab-type:hover { background: var(--accent-soft); opacity: 1; }
   /* Reiter ziehen (2.27, Issue #1): der gezogene Reiter wird blass, die Einfuegestelle ist ein Strich. */
   .tab.tab-zieht, .tab-group.tab-zieht { opacity: .4; }
-  .tab-group.drop-vor { box-shadow: inset 3px 0 0 var(--accent); }
-  .tab-group.drop-nach { box-shadow: inset -3px 0 0 var(--accent); }
-  .tab.drop-vor { box-shadow: inset 3px 0 0 var(--accent); }
-  .tab.drop-nach { box-shadow: inset -3px 0 0 var(--accent); }
+  .tab.drop-vor, .tab-group.drop-vor { box-shadow: inset 3px 0 0 var(--accent); }
+  .tab.drop-nach, .tab-group.drop-nach { box-shadow: inset -3px 0 0 var(--accent); }
   /* Reiter-Gruppen (2.27): Chip vor den Mitgliedern, Mitglieder mit farbiger Oberkante. */
   .tab-group {
     display: inline-flex; align-items: center; gap: 5px; flex: none; align-self: center;
@@ -284,16 +293,12 @@
   .tab-group:hover { background: var(--accent-soft); color: var(--ink); }
   .tab-group .pfeil { font-size: 9px; opacity: .7; }
   .tab.in-group { border-top: 2px solid var(--line-strong); }
-  /* hidden MUSS hier stehen: .tab setzt display inline-flex und ueberstimmt sonst das Attribut —
-     zugeklappte Gruppen blieben so sichtbar (2.31, real am Brett gesehen). */
-  #tabs .tab[hidden] { display: none !important; }
   /* Reiter-Menue per Rechtsklick (2.27): Umbenennen, Gruppe, aus Gruppe loesen. */
   #tab-menu {
     position: fixed; z-index: 30; min-width: 200px; padding: 4px;
     background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow);
     font-size: 12.5px; color: var(--ink);
   }
-  #tab-menu[hidden] { display: none; }
   #tab-menu button { display: block; width: 100%; text-align: left; border: none; background: none; padding: 7px 10px; border-radius: 5px; font: inherit; color: inherit; }
   #tab-menu button:hover { background: var(--accent-soft); }
   #tab-menu .trenner { height: 1px; background: var(--line); margin: 4px 6px; }
@@ -313,8 +318,8 @@
     border: 1.5px solid var(--surface); pointer-events: none;
   }
   .node .status-dot.offen { background: var(--danger); }
-  .node .status-dot.arbeit { background: #d3ab5c; }
-  .node .status-dot.fertig { background: #3f9a6a; }
+  .node .status-dot.arbeit { background: var(--warn); }
+  .node .status-dot.fertig { background: var(--ok); }
   .tab-add {
     padding: 8px 10px 7px; color: var(--ink-3);
     border-bottom: 2px solid transparent; border-radius: 0; flex: none;
@@ -443,8 +448,6 @@
     font-weight: 700; font-size: 17px; letter-spacing: -0.01em;
     color: var(--ink);
   }
-  .node.text.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)); }
-  .node.text.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent); }
   /* Zeilen-Formate (2.23): eine Zeile je Block. Punkt- und Nummernzeilen mit haengendem Einzug,
      Ueberschriften "# " und "## " groesser und fett — alles aus dem rohen Text (zeilenArt). */
   .node .txt .zl { display: block; min-height: 1.35em; }
@@ -516,26 +519,13 @@
     white-space: pre; opacity: .45; padding-right: 8px; margin-right: 8px; user-select: none;
     border-right: 1px solid var(--rand, var(--line-strong)); line-height: 1.45; max-height: 100%; overflow: hidden;
   }
-  /* Code-Farben (2.44), hell und dunkel getrennt — auf Plain-Fuellung im Dunkelmodus muss es hell bleiben. */
-  .node.code .c-com { color: #6a8a5a; font-style: italic; }
-  .node.code .c-str { color: #b45309; }
-  .node.code .c-key { color: #0e7490; }
-  .node.code .c-num { color: #7c3aed; }
-  .node.code .c-kw { color: #1d4ed8; font-weight: 600; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-    .node.code .c-com { color: #8fbf7a; }
-    .node.code .c-str { color: #f0b46a; }
-    .node.code .c-key { color: #7dd3fc; }
-    .node.code .c-num { color: #c4b5fd; }
-    .node.code .c-kw { color: #93c5fd; }
-  } }
-  :root[data-theme="dark"] {
-    .node.code .c-com { color: #8fbf7a; }
-    .node.code .c-str { color: #f0b46a; }
-    .node.code .c-key { color: #7dd3fc; }
-    .node.code .c-num { color: #c4b5fd; }
-    .node.code .c-kw { color: #93c5fd; }
-  }
+  /* Code-Farben (2.44): die Werte stehen als Token in der Palette (hell und dunkel getrennt — auf
+     Plain-Fuellung im Dunkelmodus muss es hell bleiben). */
+  .node.code .c-com { color: var(--c-com); font-style: italic; }
+  .node.code .c-str { color: var(--c-str); }
+  .node.code .c-key { color: var(--c-key); }
+  .node.code .c-num { color: var(--c-num); }
+  .node.code .c-kw { color: var(--c-kw); font-weight: 600; }
   .node.code .txt {
     font-family: "IBM Plex Mono", ui-monospace, monospace; text-align: left; line-height: 1.45;
     white-space: pre; overflow: auto; max-height: 100%; flex: 1; min-width: 0;
@@ -546,10 +536,6 @@
   .node.end { background: var(--surface) !important; border: 3px solid var(--edge) !important;
     box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
   .node.start .txt, .node.end .txt { display: none; }
-  .node.start.sel, .node.end.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)); }
-  .node.start.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent); }
-  .node.end.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
-  .node.end.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
   /* Entitaeten-Modell: Name oben, Felder darunter, Methoden abgesetzt. Seit 2.38 teilen sich
      DB-Modell (dbmodel) und Klassen-Modell (classmodel) den Grundbau. */
   .node.entity, .node.dbmodel, .node.classmodel {
@@ -584,14 +570,17 @@
   .node.dbmodel .db-grid span:nth-last-child(-n+2) { border-bottom: none; }
   /* UI-Bausteine (kind widget, Feld variant). Aussehen je Art — die Bedeutung steht im Feld. */
   .node.widget { border-radius: 5px; border: 1.5px solid; box-shadow: none; }
-  /* Rahmen, Baustein, Code, Tabelle, Datenmodell setzen ihren Schatten auf none und verloren damit den
-     Auswahl-Ring (2.18). Diese Regel steht NACH allen Bauarten und gewinnt fuer sie. */
-  .node.frame.sel, .node.widget.sel, .node.code.sel, .node.table.sel, .node.entity.sel, .node.dbmodel.sel, .node.classmodel.sel {
+  /* Bauarten ohne Grundschatten (Beschriftung, Start, Rahmen, Baustein, Code, Tabelle, Modelle) bekommen
+     den Auswahl-Ring und den Nachbar-Ring allein, ohne var(--shadow) (2.18). Steht NACH allen Bauarten und
+     gewinnt fuer sie; Ende braucht seinen Doppelring dazu und steht darum noch dahinter. */
+  .node:is(.text, .start, .frame, .widget, .code, .table, .entity, .dbmodel, .classmodel).sel {
     box-shadow: 0 0 0 2px var(--sel, var(--accent));
   }
-  .node.frame.nah, .node.widget.nah, .node.code.nah, .node.table.nah, .node.entity.nah, .node.dbmodel.nah, .node.classmodel.nah {
+  .node:is(.text, .start, .frame, .widget, .code, .table, .entity, .dbmodel, .classmodel).nah {
     box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent);
   }
+  .node.end.sel { box-shadow: 0 0 0 2px var(--sel, var(--accent)), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
+  .node.end.nah { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sel, var(--accent)) 55%, transparent), inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--edge); }
   .node.widget .txt { text-align: left; }
   .node.widget.w-button { border-radius: 999px; justify-content: center !important; font-weight: 600; }
   .node.widget.w-button .txt { text-align: center !important; }
@@ -680,7 +669,6 @@
      Nachbar in #stage und wird per ResizeObserver an die Kante gelegt (im scrollenden Kasten
      selbst liesse er sich nicht ueber die ganze Hoehe halten). */
   #insp-griff { position: absolute; width: 10px; cursor: ew-resize; z-index: 5; }
-  #insp-griff[hidden] { display: none; }
   #insp-griff::after { content: ""; position: absolute; left: 3px; top: 50%; width: 3px; height: 28px; margin-top: -14px; border-radius: 2px; background: var(--line-strong); opacity: 0; transition: opacity .12s; }
   #insp-griff:hover::after, #insp-griff.zieht::after { opacity: 1; background: var(--accent); }
   .insp-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
@@ -688,7 +676,6 @@
   .insp-top .kennung { margin-top: 0; max-width: 55%; text-align: right; }
   /* Klappbare Abschnitte. Zustand je Betrachter (rb.sec.<id>); leere Abschnitte werden versteckt. */
   .insp-sec { border-top: 1px solid var(--line); padding: 4px 0 2px; }
-  .insp-sec[hidden] { display: none; }
   .insp-sec summary {
     list-style: none; cursor: pointer; user-select: none;
     display: flex; align-items: center; gap: 6px; padding: 5px 0;
@@ -702,12 +689,6 @@
   .insp-sec summary .sec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: none; }
   .insp-sec summary.hat .sec-dot { display: inline-block; }
   .insp-sec .insp-field:last-child, .insp-sec .insp-row:last-child { margin-bottom: 6px; }
-  .insp-field { margin-bottom: 9px; }
-  .insp-field select {
-    font: 400 12.5px/1.2 "IBM Plex Sans", sans-serif; color: var(--ink); background: var(--surface-2);
-    border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; width: 100%;
-  }
-  .insp-field select:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   #btn-del-row { margin-top: 8px; }
   .insp-head {
     font-family: "IBM Plex Mono", monospace; font-size: 9.5px;
@@ -721,8 +702,6 @@
   }
   .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); background-clip: padding-box; }
   .insp-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
-  /* Autoren-Regeln schlagen die Browser-Regel fuer [hidden] — darum explizit. */
-  .insp-field[hidden] { display: none; }
   /* Tabellen-Gitter im Inspektor (2.16): ein Eingabefeld je Zelle, Kopfzeile abgesetzt. */
   .tbl-masse { font-weight: 400; color: var(--ink-3); margin-left: 4px; }
   .tbl-grid-wrap { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--ground); }
@@ -739,13 +718,15 @@
     font-family: "IBM Plex Mono", monospace; font-size: 9.5px;
     letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
   }
-  .insp-field input {
+  /* Ein Grundstil fuer alle Eingabefelder des Inspektors (Text, Auswahlliste, Langtext). */
+  .insp-field input, .insp-field select, .insp-field textarea {
     font: 400 12.5px/1.2 "IBM Plex Sans", sans-serif;
     color: var(--ink); background: var(--surface-2);
     border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px;
     width: 100%;
   }
-  .insp-field input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  .insp-field input:focus, .insp-field select:focus, .insp-field textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  .insp-field textarea { font-size: 12px; line-height: 1.35; min-height: 64px; resize: vertical; }
   .tgrp { display: flex; gap: 4px; align-items: center; }
   .tgrp button { flex: 1 1 0; min-width: 0; justify-content: center; padding: 5px 0; border-color: var(--line); }
   #fs-val {
@@ -769,13 +750,6 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .kennung:hover { color: var(--accent); }
-  .insp-field textarea {
-    font: 400 12px/1.35 "IBM Plex Sans", sans-serif;
-    color: var(--ink); background: var(--surface-2);
-    border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px;
-    width: 100%; min-height: 64px; resize: vertical;
-  }
-  .insp-field textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   /* Kleine Ecke oben rechts: "hier liegt eine Notiz". Nur Anzeige, keine Bedienung. */
   .node .note-mark {
     position: absolute; top: 0; right: 0; width: 0; height: 0;
@@ -798,7 +772,7 @@
   #status .dot {
     width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex: none;
   }
-  #status.ok .dot { background: #3f9a6a; }
+  #status.ok .dot { background: var(--ok); }
   #status.busy .dot { background: var(--accent); }
   #status.off .dot { background: var(--danger); }
   #status b { color: var(--ink-2); font-weight: 500; }
@@ -818,7 +792,6 @@
     border-radius: 8px; box-shadow: var(--shadow);
     font-size: 12px; color: var(--ink-2);
   }
-  #raster-feld[hidden] { display: none; }
   #raster-feld .zeile { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   #raster-feld .zeile + .zeile { margin-top: 8px; }
   #raster-feld label { font-size: 12px; color: var(--ink-2); }
@@ -853,7 +826,6 @@
     background: rgba(10, 16, 24, .38);
     display: flex; align-items: center; justify-content: center;
   }
-  #einst-hinter[hidden] { display: none; }
   #einst {
     width: min(620px, calc(100vw - 32px)); max-height: min(78vh, 640px);
     display: flex; flex-direction: column;
@@ -876,7 +848,6 @@
   /* min-height: 0 — ohne das darf ein Flex-Kind nicht kleiner werden als sein Inhalt, der Dialog
      lief unten ueber den Rand und nichts scrollte (2.32; der Zieh-Griff aus 2.32 kam in 2.33 wieder weg). */
   #einst .einst-inhalt { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px 16px 16px; font-size: 13px; line-height: 1.5; }
-  #einst .einst-seite[hidden] { display: none; }
   #einst table.keys { width: 100%; border-collapse: collapse; }
   #einst table.keys td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
   #einst table.keys td:first-child { width: 150px; white-space: nowrap; }
@@ -1189,8 +1160,29 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.51";
+  var FASSUNG = "3.00";
   var FASSUNG_DATUM = "2026-09-10";
+
+  /* ============================ Kleine Helfer ============================ */
+  var $ = function (id) { return document.getElementById(id); };
+  // Alle Treffer eines Selektors als echtes Array.
+  function $$(selektor, wurzel) { return Array.prototype.slice.call((wurzel || document).querySelectorAll(selektor)); }
+  var stage = $("stage"), canvas = $("canvas"), layer = $("layer");
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  function svgEl(name) { return document.createElementNS(SVG_NS, name); }
+  function leeren(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  // closest() mit Schutz: Textknoten und window haben es nicht.
+  function naechst(el, selektor) { return el && el.closest ? el.closest(selektor) : null; }
+  function knotenEl(id) { return layer.querySelector('.node[data-id="' + id + '"]'); }
+  // aria-pressed fuer eine Knopfgruppe: genau die Knoepfe gedrueckt, fuer die istAktiv() wahr ist.
+  function druecken(knoepfe, istAktiv) {
+    for (var i = 0; i < knoepfe.length; i++) knoepfe[i].setAttribute("aria-pressed", istAktiv(knoepfe[i]) ? "true" : "false");
+  }
+  // Merker liegen pro Betrachter im Browser, nicht im Brett: zwei Leute
+  // duerfen gleichzeitig auf verschiedenen Reitern arbeiten.
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function vergessen(k) { try { localStorage.removeItem(k); } catch (e) {} }
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
   // align "" ausdruecklich "nimm die Vorgabe" — nur eine Abweichung wird gespeichert.
@@ -1226,6 +1218,10 @@
   function schriftgrad(n) { return n.fs || KINDS[n.kind].fs; }
   function fett(n) { return n.bold === 1 ? true : n.bold === 2 ? false : KINDS[n.kind].bold; }
   function ausricht(n) { return n.align || KINDS[n.kind].align; }
+  // Schriftgrad der Zeilen in Modellen und im DB-Gitter: eine Stufe kleiner als der Kopf, nie unter 9.
+  function listenGrad(n) { return Math.max(9, schriftgrad(n) - 1); }
+  var ALIGNS = ["left", "center", "right"];
+  function alignLesen(v) { return ALIGNS.indexOf(v) >= 0 ? v : ""; }
   // Senkrechte Ausrichtung (2.17): "" = Vorgabe (mittig), sonst top|middle|bottom. Nur bei
   // Bauarten, die ihren Text frei im Kasten setzen — Tabelle, Datenmodell und Rahmen sind
   // Spalten-Layouts mit festem Kopf, Start/Ende haben keinen Text.
@@ -1323,8 +1319,7 @@
     boardTheme = themeLesen(th);
     if (boardTheme === "system") document.documentElement.removeAttribute("data-theme");
     else document.documentElement.setAttribute("data-theme", boardTheme);
-    var bs = document.querySelectorAll("#einst-theme button");
-    for (var i = 0; i < bs.length; i++) bs[i].setAttribute("aria-pressed", bs[i].dataset.theme === boardTheme ? "true" : "false");
+    druecken(document.querySelectorAll("#einst-theme button"), function (b) { return b.dataset.theme === boardTheme; });
   }
   var freezeArmed = null;
   function gesperrt() {
@@ -1371,10 +1366,7 @@
     });
     return best;
   }
-  function hilfslinienWeg() {
-    var alt = layer.querySelectorAll(".smart-guide");
-    for (var i = 0; i < alt.length; i++) alt[i].remove();
-  }
+  function hilfslinienWeg() { $$(".smart-guide", layer).forEach(function (g) { g.remove(); }); }
   function hilfslinieZeigen(art, pos) {
     var g = document.createElement("div");
     g.className = "smart-guide " + art;
@@ -1417,7 +1409,7 @@
   }
   function inhaltsMasse(n) {
     var SANS = '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif', MONO = '"IBM Plex Mono", ui-monospace, monospace';
-    var fs = schriftgrad(n), lf = Math.max(9, fs - 1), lh = Math.round(lf * 1.5);
+    var fs = schriftgrad(n), lf = listenGrad(n), lh = Math.round(lf * 1.5);
     var kopfB = textBreite(n.text || "", (fett(n) ? "700 " : "400 ") + fs + "px " + SANS) + 16;
     var kopfH = Math.ceil(fs * 1.35) + 10 + 1;
     var fl = n.fields || [], ml = n.methods || [], w, h;
@@ -1510,6 +1502,21 @@
   // merkt sich mousedown den letzten Treffer und erkennt den zweiten selbst.
   var letzterKlick = null;   // {t, typ, id}
   function mehrfach() { return selSet.size + selEdges.size > 1; }
+  // Die Mehrfachauswahl leeren heisst IMMER beide Mengen leeren (Elemente und Pfeile).
+  function auswahlLeeren() { selSet.clear(); selEdges.clear(); }
+  function nichtsWaehlen() { auswahlLeeren(); sel = null; }
+  // Einzelauswahl setzen: leert die Mehrfachauswahl mit (Klick auf Element, Pfeil oder Griff).
+  function waehlen(typ, id) { auswahlLeeren(); sel = { type: typ, id: id }; }
+  // Das einzeln gewaehlte Element bzw. der einzeln gewaehlte Pfeil — oder null.
+  function gewaehlterKnoten() { return sel && sel.type === "node" ? nodes.get(sel.id) || null : null; }
+  function gewaehlterPfeil() { return sel && sel.type === "edge" ? edges.get(sel.id) || null : null; }
+  // Kennungen der gewaehlten Elemente: die Sammel-Auswahl oder das eine gewaehlte Element.
+  function gewaehlteKnotenIds() {
+    var ids = [];
+    if (mehrfach()) selSet.forEach(function (id) { if (nodes.has(id)) ids.push(id); });
+    else if (sel && sel.type === "node" && nodes.has(sel.id)) ids = [sel.id];
+    return ids;
+  }
   var linkFrom = null;
   var view = { x: 0, y: 0, k: 1 };
   var drag = null;
@@ -1531,12 +1538,12 @@
   var reiterAbgleichLief = false;
   var writes = 0;
 
-  var $ = function (id) { return document.getElementById(id); };
-  var stage = $("stage"), canvas = $("canvas"), layer = $("layer");
-
   function uid() {
     return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
   }
+  // z-Index-Skala der Zeichenebene: doppelt, damit zwischen zwei Ebenen Platz fuer die Pfeile bleibt.
+  var Z_BASIS = 2000;
+  function ebeneZ(z) { return Z_BASIS + z * 2; }
   function topZ() {
     var m = 0;
     nodes.forEach(function (n) { if (n.z > m) m = n.z; });
@@ -1549,11 +1556,6 @@
   }
 
   /* ============================ Reiter ============================ */
-  // Merker liegen pro Betrachter im Browser, nicht im Brett: zwei Leute
-  // duerfen gleichzeitig auf verschiedenen Reitern arbeiten.
-  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-
   // WAISEN-REGEL: der wirksame Reiter eines Elements ist der eigene, WENN es diesen
   // Reiter gibt — sonst der Auffang-Reiter. Ist ueberhaupt kein Reiter benannt, gilt der
   // implizite HOME. Damit vernichtet ein Reiter-Loeschen keinen Inhalt mehr: die Elemente
@@ -1621,6 +1623,8 @@
     fit();
   }
 
+  // Der offene Reiter, im Browser gemerkt (je Betrachter).
+  function reiterMerken(id) { activeSheet = id; store("rb.sheet", id); }
   function switchSheet(id) {
     endTabRename();
     if (id === activeSheet) return;
@@ -1630,8 +1634,7 @@
       var te = layer.querySelector('.node[data-id="' + editing.id + '"] .txt');
       if (te) te.blur();
     }
-    activeSheet = id;
-    store("rb.sheet", id);
+    reiterMerken(id);
     sel = null; linkFrom = null;
     setTool("select");
     refilter();
@@ -1655,7 +1658,7 @@
     var id = uid();
     sheets.set(id, { name: "Reiter " + (sheets.size + 1), order: maxo + 1 });
     putSheet(id);
-    try { localStorage.removeItem("rb.view." + id); } catch (e) {}
+    vergessen("rb.view." + id);
     switchSheet(id);
     renameSheet(id);
   }
@@ -1730,10 +1733,9 @@
     // umkehrbar: ein Reiter mit derselben Kennung holt sie zurueck.
     sheets.delete(id);
     dropDoc("sheets", id);
-    try { localStorage.removeItem("rb.view." + id); } catch (e) {}
+    vergessen("rb.view." + id);
 
-    activeSheet = sheetList()[0].id;
-    store("rb.sheet", activeSheet);
+    reiterMerken(sheetList()[0].id);
     sel = null;
     refilter();
     render();
@@ -1789,8 +1791,7 @@
     });
   }
   function tabZielWeg() {
-    var alt = document.querySelectorAll("#tabs .drop-vor, #tabs .drop-nach");
-    for (var i = 0; i < alt.length; i++) { alt[i].classList.remove("drop-vor"); alt[i].classList.remove("drop-nach"); }
+    $$("#tabs .drop-vor, #tabs .drop-nach").forEach(function (t) { t.classList.remove("drop-vor"); t.classList.remove("drop-nach"); });
   }
   window.addEventListener("mousemove", function (ev) {
     if (!tabZiehen) return;
@@ -1804,7 +1805,7 @@
     }
     tabZielWeg();
     var ueber = document.elementFromPoint(ev.clientX, ev.clientY);
-    var t = ueber && ueber.closest ? ueber.closest("#tabs .tab, #tabs .tab-group") : null;
+    var t = ueber && naechst(ueber, "#tabs .tab, #tabs .tab-group");
     tabZiehen.ziel = null; tabZiehen.zielGruppe = null;
     if (!t && ueber && ueber.closest && ueber.closest("#tabs")) {
       // ueber der Leiste, aber auf keinem Reiter: hinter den letzten echten Reiter
@@ -1909,8 +1910,23 @@
     render();
     toast(name ? "Reiter in Gruppe „" + name + "“" : "Reiter aus der Gruppe gelöst");
   }
+  // Das Kontext-Menue #tab-menu: eine Huelle fuer das Reiter-Menue und das Zellen-Menue (2.49).
   var tabMenu = $("tab-menu");
   function tabMenueWeg() { tabMenu.hidden = true; }
+  function menueKnopf(text, fn) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = text;
+    b.addEventListener("click", function () { tabMenueWeg(); fn(); });
+    tabMenu.appendChild(b);
+    return b;
+  }
+  function menueTrenner() { var t = document.createElement("div"); t.className = "trenner"; tabMenu.appendChild(t); }
+  function menueHinweis(text) { var h = document.createElement("div"); h.className = "hinweis"; h.textContent = text; tabMenu.appendChild(h); }
+  // Oeffnen an der Mausposition; hoehe > 0 haelt ein hohes Menue im Fenster.
+  function menueOeffnen(ev, hoehe) {
+    tabMenu.hidden = false;
+    tabMenu.style.left = Math.max(0, Math.min(ev.clientX, window.innerWidth - 220)) + "px";
+    tabMenu.style.top = (hoehe ? Math.max(0, Math.min(ev.clientY, window.innerHeight - hoehe)) : ev.clientY) + "px";
+  }
   // Reiter-Typ setzen (2.38): der EINE Schreibweg fuer Klick aufs Symbol und Rechtsklick-Menue.
   function reiterTypSetzen(id, typ) {
     if (gesperrt()) return;
@@ -1924,17 +1940,13 @@
   function tabMenueZeigen(ev, id) {
     tabMenueWeg();
     var sh = sheets.get(id) || { name: sheetName(id), group: "" };
-    while (tabMenu.firstChild) tabMenu.removeChild(tabMenu.firstChild);
-    function knopf(text, fn) {
-      var b = document.createElement("button"); b.type = "button"; b.textContent = text;
-      b.addEventListener("click", function () { tabMenueWeg(); fn(); });
-      tabMenu.appendChild(b);
-    }
-    knopf("Umbenennen", function () { renameSheet(id); });
-    if (!gesperrt()) {
+    leeren(tabMenu);
+    var darf = !gesperrt();
+    menueKnopf("Umbenennen", function () { renameSheet(id); });
+    if (darf) {
       // Reiter-Typ (2.38): alle Typen als Knoepfe mit Symbol und Namen, der aktuelle markiert.
-      var tr0 = document.createElement("div"); tr0.className = "trenner"; tabMenu.appendChild(tr0);
-      var lab0 = document.createElement("div"); lab0.className = "hinweis"; lab0.textContent = "Reiter-Typ:"; tabMenu.appendChild(lab0);
+      menueTrenner();
+      menueHinweis("Reiter-Typ:");
       var typen = document.createElement("div"); typen.className = "typen";
       SHEET_TYPES.forEach(function (ty) {
         var tb = document.createElement("button"); tb.type = "button";
@@ -1945,10 +1957,8 @@
         typen.appendChild(tb);
       });
       tabMenu.appendChild(typen);
-      var tr = document.createElement("div"); tr.className = "trenner"; tabMenu.appendChild(tr);
-      var lab = document.createElement("div"); lab.className = "hinweis";
-      lab.textContent = sh.group ? "Gruppe (Enter übernimmt):" : "In Gruppe einsortieren (Enter):";
-      tabMenu.appendChild(lab);
+      menueTrenner();
+      menueHinweis(sh.group ? "Gruppe (Enter übernimmt):" : "In Gruppe einsortieren (Enter):");
       var inp = document.createElement("input");
       inp.type = "text"; inp.maxLength = 40; inp.placeholder = "Gruppenname"; inp.setAttribute("list", "tab-gruppen");
       inp.value = sh.group || "";
@@ -1962,12 +1972,10 @@
       var namen = {}; sheets.forEach(function (x) { if (x.group) namen[x.group] = 1; });
       Object.keys(namen).sort().forEach(function (g) { var o = document.createElement("option"); o.value = g; dl.appendChild(o); });
       tabMenu.appendChild(dl);
-      if (sh.group) knopf("Aus der Gruppe lösen", function () { reiterGruppieren(id, ""); });
+      if (sh.group) menueKnopf("Aus der Gruppe lösen", function () { reiterGruppieren(id, ""); });
     }
-    tabMenu.hidden = false;
-    tabMenu.style.left = Math.max(0, Math.min(ev.clientX, window.innerWidth - 220)) + "px";
-    tabMenu.style.top = ev.clientY + "px";
-    if (!gesperrt()) setTimeout(function () { var i = tabMenu.querySelector("input"); if (i) i.focus({ preventScroll: true }); }, 0);
+    menueOeffnen(ev, 0);
+    if (darf) setTimeout(function () { var i = tabMenu.querySelector("input"); if (i) i.focus({ preventScroll: true }); }, 0);
   }
   window.addEventListener("mousedown", function (ev) { if (!tabMenu.hidden && !tabMenu.contains(ev.target)) tabMenueWeg(); }, true);
 
@@ -1977,7 +1985,7 @@
     if (tabEditing && tabFeldAktiv()) return;
     tabEditing = null;
     var bar = $("tabs");
-    while (bar.firstChild) bar.removeChild(bar.firstChild);
+    leeren(bar);
     // Einmal rechnen: sheetList() laeuft ueber alle Elemente (waisenZahl), das lohnt
     // nicht viermal je Neuzeichnen.
     var list = sheetList();
@@ -2123,10 +2131,11 @@
     setStatus("busy", "speichere …");
   }
 
+  var auftauenLaeuft = false;   // der eine Schreibvorgang, der durch die Sperre darf
   function track(p) {
     if (!db) return Promise.resolve();
     // Letzte Verteidigung: eingefroren schreibt nichts — ausser das Auftauen selbst.
-    if (frozen && !track.auftauen) { return Promise.resolve(); }
+    if (frozen && !auftauenLaeuft) { return Promise.resolve(); }
     writes++; busy();
     return p.catch(function (e) {
       // syncTot zuerst: nach einem Verbindungsverlust schlaegt jeder Schreibvorgang fehl,
@@ -2141,29 +2150,39 @@
       return r;
     }, function () { writes--; if (writes <= 0) { writes = 0; abarbeiten(); } });
   }
-  function putNode(id) {
-    var n = nodes.get(id); if (!n || !db) return;
-    var d = {
-      kind: n.kind, x: n.x, y: n.y, w: n.w, h: n.h,
-      text: n.text, color: n.color, z: n.z, sheet: n.sheet || HOME,
-      fs: n.fs || 0, bold: n.bold || 0, align: n.align || "",
-      note: n.note || "", valign: n.valign || ""
-    };
+  // Das Dokument eines Elements, wie es in der Datenbank liegt (Datenschema in CLAUDE.md). Der EINE
+  // Bauplan fuer putNode (mit Reiter), die Ablage (ohne Reiter) und den Export (Reiter aufgeloest) —
+  // bis 2.51 stand er dreimal da und musste bei jedem neuen Feld dreimal nachgezogen werden.
+  function knotenDaten(n, sheet) {
+    var d = { kind: n.kind, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, color: n.color, z: n.z || 0 };
+    if (sheet !== undefined) d.sheet = sheet;
+    d.fs = n.fs || 0; d.bold = n.bold || 0; d.align = n.align || "";
+    d.note = n.note || ""; d.valign = n.valign || "";
     if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
     if (n.kind === "frame") d.layout = n.layout || "frei";
     if (n.kind === "widget") d.variant = n.variant || "button";
     if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); d.auto = !!n.auto; }
     d.link = n.link || ""; d.status = statusLesen(n.status);
     d.hidden = n.hidden === true;
-    track(db.doc("nodes/" + id).set(d));
+    return d;
+  }
+  // Das Dokument eines Pfeils; from/to und sheet nur, wenn der Aufrufer sie mitgibt (die Ablage
+  // haelt Pfeile ohne Kennungen, s. auswahlPaket).
+  function pfeilDaten(e, von, nach, sheet) {
+    var pf = pfeilFelder(e), d = {};
+    if (von !== undefined) { d.from = von; d.to = nach; }
+    d.label = e.label || "";
+    if (sheet !== undefined) d.sheet = sheet;
+    d.style = pf.style; d.ends = pf.ends; d.head = pf.head; d.fromLabel = pf.fromLabel; d.toLabel = pf.toLabel;
+    return d;
+  }
+  function putNode(id) {
+    var n = nodes.get(id); if (!n || !db) return;
+    track(db.doc("nodes/" + id).set(knotenDaten(n, n.sheet || HOME)));
   }
   function putEdge(id) {
     var e = edges.get(id); if (!e || !db) return;
-    var pf = pfeilFelder(e);
-    track(db.doc("edges/" + id).set({
-      from: e.from, to: e.to, label: e.label || "", sheet: e.sheet || HOME,
-      style: pf.style, ends: pf.ends, head: pf.head, fromLabel: pf.fromLabel, toLabel: pf.toLabel
-    }));
+    track(db.doc("edges/" + id).set(pfeilDaten(e, e.from, e.to, e.sheet || HOME)));
   }
   function putSheet(id) {
     var s = sheets.get(id); if (!s || !db) return;
@@ -2275,7 +2294,7 @@
     "|(\\b\\d+(?:\\.\\d+)?\\b)" +                                                   // 3 Zahl
     "|(\\b(?:" + CODE_KW + ")\\b)", "g");                                             // 4 Schluesselwort
   function codeFuellen(t, text) {
-    while (t.firstChild) t.removeChild(t.firstChild);
+    leeren(t);
     var src = text || "", last = 0, m;
     CODE_RE.lastIndex = 0;
     function roh(a, b) { if (b > a) t.appendChild(document.createTextNode(src.slice(a, b))); }
@@ -2296,7 +2315,7 @@
     var zeilen = (text || "").split("\n");
     var hat = immerZeilen || zeilen.some(function (z) { return zeilenArt(z).art !== ""; });
     if (!hat) { t.textContent = text; return; }
-    while (t.firstChild) t.removeChild(t.firstChild);
+    leeren(t);
     zeilen.forEach(function (z) {
       var d = document.createElement("span");
       var a = zeilenArt(z);
@@ -2358,7 +2377,7 @@
   }
   // Menue/Reiterleiste: Eintraege mit "|" getrennt, der erste gilt als aktiv.
   function menueFuellen(t, text) {
-    while (t.firstChild) t.removeChild(t.firstChild);
+    leeren(t);
     (text || "").split("|").forEach(function (e) {
       var s = document.createElement("span");
       s.className = "w-tab";
@@ -2438,12 +2457,189 @@
     return out;
   }
 
+  // Fuellung und Rand eines Elements: Raute als SVG-Polygon, Beschriftung ohne Hintergrund,
+  // alle anderen ueber die Farbtoken der Bauart.
+  function knotenFarben(el, n) {
+    if (n.kind === "diamond") {
+      var svg = svgEl("svg");
+      svg.setAttribute("class", "dia");
+      svg.setAttribute("viewBox", "0 0 100 100");
+      svg.setAttribute("preserveAspectRatio", "none");
+      var poly = svgEl("polygon");
+      poly.setAttribute("points", "50,1.5 98.5,50 50,98.5 1.5,50");
+      poly.setAttribute("fill", "var(--f-" + n.color + ")");
+      poly.setAttribute("stroke", "var(--s-" + n.color + ")");
+      poly.setAttribute("vector-effect", "non-scaling-stroke");
+      svg.appendChild(poly);
+      el.appendChild(svg);
+    } else if (n.kind === "text") {
+      el.style.background = "none";
+    } else {
+      // Notiz: nur die Farbe setzen, das Kurzformat "background" wuerde die Papierlinien loeschen.
+      if (n.kind === "sticky") { el.style.backgroundColor = fillOf(n); el.style.fontSize = schriftgrad(n) + "px"; }
+      else el.style.background = fillOf(n);
+      el.style.borderColor = "var(--s-" + n.color + ")";
+      // 2.39: alle inneren Linien (Kopfzeilen, Zellen, Faecher, Zeilennummern) in derselben Farbe
+      // wie der Rand — ueber eine Variable, damit das CSS keine Farbnamen kennen muss.
+      el.style.setProperty("--rand", "var(--s-" + n.color + ")");
+      // Plain-Fuellung ist im Dunkelmodus dunkel — dann helle Schrift, fuer JEDE Bauart (F1 der
+      // Pruefliste; bis 2.19 galt das nur fuer box, Rahmen/Code/Tabelle/Baustein waren unlesbar).
+      if (n.color === "plain") el.style.color = "var(--node-ink-plain, var(--node-ink))";
+    }
+  }
+  // Code-Kasten (2.38): Zeilennummern in einem eigenen Rand links, laufen beim Tippen mit.
+  function codeRandBauen(el, t, n) {
+    var gut = document.createElement("div");
+    gut.className = "code-gutter";
+    gut.style.fontSize = schriftgrad(n) + "px";
+    var zeilenNr = function () {
+      // Beim Tippen haengt Chrome hinter einem Zeilenende ein unsichtbares <br> an, damit
+      // die leere letzte Zeile einen Cursor hat — innerText endet dann auf "\n\n". Das ist
+      // EINE Zeile, nicht zwei (2.44; vorher sprang die Nummer 5 auf und wieder weg).
+      var roh = t.isContentEditable ? t.innerText.replace(/\n\n$/, "\n") : (n.text || "");
+      var k = roh.split("\n").length;
+      var out = []; for (var z = 1; z <= k; z++) out.push(z);
+      gut.textContent = out.join("\n");
+    };
+    zeilenNr();
+    t.addEventListener("input", zeilenNr);
+    el.appendChild(gut);
+  }
+  // Modelle (2.38): DB-Modell als Name | Typ-Gitter, Entitaet und Klasse als Listen-Faecher.
+  function modellBauen(el, n) {
+    el.style.justifyContent = "flex-start";
+    if (n.kind === "dbmodel") {
+      // DB-Modell: jede Zeile "Name: Typ" wird zu zwei Zellen, Linien dazwischen.
+      var dg = document.createElement("div");
+      dg.className = "db-grid";
+      dg.style.fontSize = listenGrad(n) + "px";
+      (n.fields || []).forEach(function (z) {
+        var i = z.indexOf(":");
+        var a = document.createElement("span"), b = document.createElement("span");
+        a.className = "db-name"; b.className = "db-typ";
+        if (i < 0) { a.textContent = z; a.className += " db-voll"; dg.appendChild(a); return; }
+        a.textContent = z.slice(0, i).trim(); b.textContent = z.slice(i + 1).trim();
+        dg.appendChild(a); dg.appendChild(b);
+      });
+      if (!(n.fields || []).length) { var leer = document.createElement("span"); leer.className = "db-name db-voll"; leer.textContent = "\u00a0"; dg.appendChild(leer); }
+      el.appendChild(dg);
+      return;
+    }
+    var fl = document.createElement("div");
+    fl.className = "ent-list";
+    fl.style.fontSize = listenGrad(n) + "px";
+    fl.textContent = (n.fields || []).join("\n") || "\u00a0";
+    el.appendChild(fl);
+    // Klassen-Modell (2.38): das Methoden-Fach steht immer, wie in UML — auch leer.
+    if ((n.methods && n.methods.length) || n.kind === "classmodel") {
+      var ml = document.createElement("div");
+      ml.className = "ent-list ent-methods";
+      ml.style.fontSize = listenGrad(n) + "px";
+      ml.textContent = (n.methods || []).join("\n") || "\u00a0";
+      el.appendChild(ml);
+    }
+  }
+  // Der Inhalt eines Elements: das Textfeld .txt mit Schriftgrad/fett/Ausrichtung und je Bauart
+  // das Drumherum (Tabelle, Baustein-Zutaten, Modell-Faecher, Rahmen-Abzeichen).
+  function knotenInhalt(el, n) {
+    var t = document.createElement("div");
+    t.className = "txt";
+    if (n.kind === "code") { codeFuellen(t, n.text); codeRandBauen(el, t, n); }
+    else if (n.kind === "widget" && n.variant === "list") textFuellen(t, n.text, true);
+    else if (n.kind === "widget" && n.variant === "menu") menueFuellen(t, n.text);
+    else textFuellen(t, n.text);
+    // Immer setzen, in beide Richtungen: eine Beschriftung ist per CSS fett und
+    // muss sich auch wieder normal stellen lassen. Darum die Vorgabe der Bauart
+    // ueber schriftgrad/fett/ausricht und kein "nur wenn abweichend".
+    t.style.fontSize = schriftgrad(n) + "px";
+    t.style.fontWeight = fett(n) ? "700" : "400";
+    var aus = ausricht(n);
+    t.style.width = n.kind === "code" ? "auto" : "100%";
+    t.style.textAlign = aus;
+    el.style.justifyContent = aus === "left" ? "flex-start" : aus === "right" ? "flex-end" : "center";
+    if (senkrechtMoeglich(n)) {
+      var va = senkrecht(n);
+      el.style.alignItems = va === "top" ? "flex-start" : va === "bottom" ? "flex-end" : "center";
+    }
+    el.appendChild(t);
+    if (n.kind === "table") {
+      el.style.justifyContent = "flex-start";
+      el.appendChild(tabelleBauen(n));
+    }
+    if (n.kind === "widget") {
+      var vz = variantLesen(n.variant);
+      if (vz === "select") { var car = document.createElement("span"); car.className = "w-caret"; car.textContent = "\u25BE"; el.appendChild(car); }
+      if (vz === "toggle") { var kn = document.createElement("span"); kn.className = "w-knob"; el.appendChild(kn); }
+      if (vz === "list") el.style.justifyContent = "flex-start";
+    }
+    if (hatFelder(n)) modellBauen(el, n);
+    if (n.kind === "frame") {
+      el.style.justifyContent = "flex-start";
+      if (n.layout && n.layout !== "frei") {
+        var badge = document.createElement("div");
+        badge.className = "frame-badge";
+        badge.textContent = n.layout;
+        el.appendChild(badge);
+      }
+    }
+  }
+  // Notiz-Ecke, Status-Punkt und Tooltip (Notiz-Anfang und Verweis).
+  function markenSetzen(el, n) {
+    if (n.note) {
+      var mark = document.createElement("div");
+      mark.className = "note-mark";
+      el.appendChild(mark);
+      el.title = n.note.length > 200 ? n.note.slice(0, 200) + " …" : n.note;
+    }
+    if (n.status) {
+      var dot = document.createElement("div");
+      dot.className = "status-dot " + n.status;
+      el.appendChild(dot);
+    }
+    if (n.link) el.title = (el.title ? el.title + "\n" : "") + "\u2197 " + n.link;
+  }
+  // Die acht Griffe eines gewaehlten Elements als eigene Ebene ueber allen Knoten (2.22).
+  var GRIFFE = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+  function griffeBauen(id, n) {
+    var gl = document.createElement("div");
+    gl.className = "grips" + (ohneText(n) ? " rund" : "");
+    gl.dataset.gripFor = id;
+    griffeSetzen(gl, n);
+    GRIFFE.forEach(function (dir) {
+      var grip = document.createElement("div");
+      grip.className = "grip";
+      grip.dataset.grip = id;
+      grip.dataset.dir = dir;
+      gl.appendChild(grip);
+    });
+    return gl;
+  }
+  // Ein Element als DOM: Huelle mit Lage, Ebene und Klassen, dann Farben, Inhalt, Marken.
+  function knotenBauen(id, n, istSel, nah, versteckt) {
+    var el = document.createElement("div");
+    el.className = "node " + n.kind +
+      (n.kind === "widget" ? " w-" + variantLesen(n.variant) : "") +
+      (istSel ? " sel" : "") + (nah.knoten.has(id) ? " nah" : "") + (versteckt ? " versteckt" : "");
+    el.dataset.id = id;
+    el.style.setProperty("--sel", "var(--r-" + n.color + ", var(--accent))");
+    el.style.left = n.x + "px";
+    el.style.top = n.y + "px";
+    el.style.width = n.w + "px";
+    el.style.height = n.h + "px";
+    // Gewaehltes Element und seine Nachbarn liegen vorn (2.37), ihre Pfeile eine Stufe darunter.
+    var ebene = nah.an && (istSel || nah.knoten.has(id)) ? nah.hoch + 2 : (n.z || 0);
+    el.style.zIndex = String(ebeneZ(ebene));
+    knotenFarben(el, n);
+    knotenInhalt(el, n);
+    markenSetzen(el, n);
+    return el;
+  }
+
   function renderNodes() {
     if (editing && editing.finish && editing.el && editing.el.isConnected) offenesTippenAbschliessen();
     var nah = nachbarschaft();
     // vorhandene Knoten-Elemente entfernen (SVG-Ebene bleibt)
-    var old = layer.querySelectorAll(".node, .grips");
-    for (var i = 0; i < old.length; i++) old[i].remove();
+    $$(".node, .grips", layer).forEach(function (el) { el.remove(); });
 
     var list = [], tabellen = [];
     nodes.forEach(function (n, id) { list.push([id, n]); });
@@ -2453,169 +2649,9 @@
     list.forEach(function (pair) {
       var id = pair[0], n = pair[1];
       if (vs.weg.has(id)) return;   // liegt in einem ausgeblendeten Element (2.50)
-      var el = document.createElement("div");
       var istSel = (sel && sel.type === "node" && sel.id === id) || selSet.has(id);
-      el.className = "node " + n.kind +
-        (n.kind === "widget" ? " w-" + variantLesen(n.variant) : "") +
-        (istSel ? " sel" : "") + (nah.knoten.has(id) ? " nah" : "") + (vs.umriss.has(id) ? " versteckt" : "");
-      el.dataset.id = id;
-      el.style.setProperty("--sel", "var(--r-" + n.color + ", var(--accent))");
-      el.style.left = n.x + "px";
-      el.style.top = n.y + "px";
-      el.style.width = n.w + "px";
-      el.style.height = n.h + "px";
-      // Doppelte Skala: dazwischen bleibt je Ebene ein Platz für die Pfeile.
-      // Gewaehltes Element und seine Nachbarn liegen vorn (2.37), ihre Pfeile eine Stufe darunter.
-      var ebene = nah.an && (istSel || nah.knoten.has(id)) ? nah.hoch + 2 : (n.z || 0);
-      el.style.zIndex = String(2000 + ebene * 2);
-
-      if (n.kind === "diamond") {
-        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("class", "dia");
-        svg.setAttribute("viewBox", "0 0 100 100");
-        svg.setAttribute("preserveAspectRatio", "none");
-        var poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        poly.setAttribute("points", "50,1.5 98.5,50 50,98.5 1.5,50");
-        poly.setAttribute("fill", "var(--f-" + n.color + ")");
-        poly.setAttribute("stroke", "var(--s-" + n.color + ")");
-        poly.setAttribute("vector-effect", "non-scaling-stroke");
-        svg.appendChild(poly);
-        el.appendChild(svg);
-      } else if (n.kind === "text") {
-        el.style.background = "none";
-      } else {
-        // Notiz: nur die Farbe setzen, das Kurzformat "background" wuerde die Papierlinien loeschen.
-        if (n.kind === "sticky") { el.style.backgroundColor = fillOf(n); el.style.fontSize = schriftgrad(n) + "px"; }
-        else el.style.background = fillOf(n);
-        el.style.borderColor = "var(--s-" + n.color + ")";
-        // 2.39: alle inneren Linien (Kopfzeilen, Zellen, Faecher, Zeilennummern) in derselben Farbe
-        // wie der Rand — ueber eine Variable, damit das CSS keine Farbnamen kennen muss.
-        el.style.setProperty("--rand", "var(--s-" + n.color + ")");
-        // Plain-Fuellung ist im Dunkelmodus dunkel — dann helle Schrift, fuer JEDE Bauart (F1 der
-        // Pruefliste; bis 2.19 galt das nur fuer box, Rahmen/Code/Tabelle/Baustein waren unlesbar).
-        if (n.color === "plain") el.style.color = "var(--node-ink-plain, var(--node-ink))";
-      }
-
-      var t = document.createElement("div");
-      t.className = "txt";
-      if (n.kind === "code") {
-        codeFuellen(t, n.text);
-        // Zeilennummern (2.38): eigener Rand links, laeuft beim Tippen mit.
-        var gut = document.createElement("div");
-        gut.className = "code-gutter";
-        gut.style.fontSize = schriftgrad(n) + "px";
-        var zeilenNr = function () {
-          // Beim Tippen haengt Chrome hinter einem Zeilenende ein unsichtbares <br> an, damit
-          // die leere letzte Zeile einen Cursor hat — innerText endet dann auf "\n\n". Das ist
-          // EINE Zeile, nicht zwei (2.44; vorher sprang die Nummer 5 auf und wieder weg).
-          var roh = t.isContentEditable ? t.innerText.replace(/\n\n$/, "\n") : (n.text || "");
-          var k = roh.split("\n").length;
-          var out = []; for (var z = 1; z <= k; z++) out.push(z);
-          gut.textContent = out.join("\n");
-        };
-        zeilenNr();
-        t.addEventListener("input", zeilenNr);
-        el.appendChild(gut);
-      }
-      else if (n.kind === "widget" && n.variant === "list") textFuellen(t, n.text, true);
-      else if (n.kind === "widget" && n.variant === "menu") menueFuellen(t, n.text);
-      else textFuellen(t, n.text);
-      // Immer setzen, in beide Richtungen: eine Beschriftung ist per CSS fett und
-      // muss sich auch wieder normal stellen lassen. Darum die Vorgabe der Bauart
-      // ueber schriftgrad/fett/ausricht und kein "nur wenn abweichend".
-      t.style.fontSize = schriftgrad(n) + "px";
-      t.style.fontWeight = fett(n) ? "700" : "400";
-      var aus = ausricht(n);
-      t.style.width = n.kind === "code" ? "auto" : "100%";
-      t.style.textAlign = aus;
-      el.style.justifyContent =
-        aus === "left" ? "flex-start" : aus === "right" ? "flex-end" : "center";
-      if (senkrechtMoeglich(n)) {
-        var va = senkrecht(n);
-        el.style.alignItems = va === "top" ? "flex-start" : va === "bottom" ? "flex-end" : "center";
-      }
-      el.appendChild(t);
-      if (n.kind === "table") {
-        el.style.justifyContent = "flex-start";
-        el.appendChild(tabelleBauen(n));
-      }
-      if (n.kind === "widget") {
-        var vz = variantLesen(n.variant);
-        if (vz === "select") { var car = document.createElement("span"); car.className = "w-caret"; car.textContent = "\u25BE"; el.appendChild(car); }
-        if (vz === "toggle") { var kn = document.createElement("span"); kn.className = "w-knob"; el.appendChild(kn); }
-        if (vz === "list") el.style.justifyContent = "flex-start";
-      }
-      if (n.kind === "dbmodel") {
-        // DB-Modell (2.38): jede Zeile "Name: Typ" wird zu zwei Zellen, Linien dazwischen.
-        el.style.justifyContent = "flex-start";
-        var dg = document.createElement("div");
-        dg.className = "db-grid";
-        dg.style.fontSize = Math.max(9, schriftgrad(n) - 1) + "px";
-        (n.fields || []).forEach(function (z) {
-          var i = z.indexOf(":");
-          var a = document.createElement("span"), b = document.createElement("span");
-          a.className = "db-name"; b.className = "db-typ";
-          if (i < 0) { a.textContent = z; a.className += " db-voll"; dg.appendChild(a); return; }
-          a.textContent = z.slice(0, i).trim(); b.textContent = z.slice(i + 1).trim();
-          dg.appendChild(a); dg.appendChild(b);
-        });
-        if (!(n.fields || []).length) { var leer = document.createElement("span"); leer.className = "db-name db-voll"; leer.textContent = "\u00a0"; dg.appendChild(leer); }
-        el.appendChild(dg);
-      }
-      if (n.kind === "entity" || n.kind === "classmodel") {
-        el.style.justifyContent = "flex-start";
-        var fl = document.createElement("div");
-        fl.className = "ent-list";
-        fl.style.fontSize = Math.max(9, schriftgrad(n) - 1) + "px";
-        fl.textContent = (n.fields || []).join("\n") || "\u00a0";
-        el.appendChild(fl);
-        // Klassen-Modell (2.38): das Methoden-Fach steht immer, wie in UML — auch leer.
-        if ((n.methods && n.methods.length) || n.kind === "classmodel") {
-          var ml = document.createElement("div");
-          ml.className = "ent-list ent-methods";
-          ml.style.fontSize = Math.max(9, schriftgrad(n) - 1) + "px";
-          ml.textContent = (n.methods || []).join("\n") || "\u00a0";
-          el.appendChild(ml);
-        }
-      }
-      if (n.kind === "frame") {
-        el.style.justifyContent = "flex-start";
-        if (n.layout && n.layout !== "frei") {
-          var badge = document.createElement("div");
-          badge.className = "frame-badge";
-          badge.textContent = n.layout;
-          el.appendChild(badge);
-        }
-      }
-
-      if (el.classList.contains("sel")) {
-        var gl = document.createElement("div");
-        gl.className = "grips" + (ohneText(n) ? " rund" : "");
-        gl.dataset.gripFor = id;
-        griffeSetzen(gl, n);
-        ["nw", "n", "ne", "e", "se", "s", "sw", "w"].forEach(function (dir) {
-          var grip = document.createElement("div");
-          grip.className = "grip";
-          grip.dataset.grip = id;
-          grip.dataset.dir = dir;
-          gl.appendChild(grip);
-        });
-        layer.appendChild(gl);
-      }
-
-      if (n.note) {
-        var mark = document.createElement("div");
-        mark.className = "note-mark";
-        el.appendChild(mark);
-        el.title = n.note.length > 200 ? n.note.slice(0, 200) + " …" : n.note;
-      }
-      if (n.status) {
-        var dot = document.createElement("div");
-        dot.className = "status-dot " + n.status;
-        el.appendChild(dot);
-      }
-      if (n.link) el.title = (el.title ? el.title + "\n" : "") + "\u2197 " + n.link;
-
+      var el = knotenBauen(id, n, istSel, nah, vs.umriss.has(id));
+      if (istSel) layer.appendChild(griffeBauen(id, n));
       layer.appendChild(el);
       if (n.kind === "table") tabellen.push([el, n]);
     });
@@ -2627,19 +2663,16 @@
   }
 
   function renderWires() {
-    var stale = layer.querySelectorAll(".wire-svg");
-    for (var s = 0; s < stale.length; s++) stale[s].remove();
-    var NS = "http://www.w3.org/2000/svg";
-
+    $$(".wire-svg", layer).forEach(function (el) { el.remove(); });
     // Eine eigene Ebene je Pfeil, auf z-index gelegt
-    function sheet(z) {
-      var svg = document.createElementNS(NS, "svg");
+    function pfeilEbene(z) {
+      var svg = svgEl("svg");
       svg.setAttribute("class", "wire-svg");
       svg.setAttribute("width", "1");
       svg.setAttribute("height", "1");
       // eine Stufe unter den Kästen derselben Ebene — unabhängig davon,
       // in welcher Reihenfolge gerade neu gezeichnet wurde
-      svg.style.zIndex = String(2000 + z * 2 - 1);
+      svg.style.zIndex = String(ebeneZ(z) - 1);
       layer.appendChild(svg);
       return svg;
     }
@@ -2653,7 +2686,7 @@
       return "M" + tx + "," + ty + " L" + (bx - uy * hw) + "," + (by + ux * hw) + " L" + (bx + uy * hw) + "," + (by - ux * hw) + " z";
     }
     function kopf(g, p, ux, uy, sw, tri) {
-      var k = document.createElementNS(NS, "path");
+      var k = svgEl("path");
       k.setAttribute("class", "kopf" + (tri ? " tri" : ""));
       k.setAttribute("d", kopfPfad(p, ux, uy, sw, tri));
       g.appendChild(k);
@@ -2669,19 +2702,19 @@
       if (!dx && !dy) return;
       var p1 = border(a, dx, dy), p2 = border(b, -dx, -dy);
 
-      var g = document.createElementNS(NS, "g");
+      var g = svgEl("g");
       var istSel = (sel && sel.type === "edge" && sel.id === id) || selEdges.has(id);
       g.setAttribute("class", "wire" + (istSel ? " sel" : "") + (istNah ? " nah" : ""));
       g.dataset.edge = id;
 
       var d = "M" + p1.x + "," + p1.y + " L" + p2.x + "," + p2.y;
 
-      var hit = document.createElementNS(NS, "path");
+      var hit = svgEl("path");
       hit.setAttribute("class", "hit");
       hit.setAttribute("d", d);
       g.appendChild(hit);
 
-      var line = document.createElementNS(NS, "path");
+      var line = svgEl("path");
       line.setAttribute("class", "line");
       line.setAttribute("d", d);
       var pf = pfeilFelder(e);
@@ -2696,7 +2729,7 @@
 
       // Endbeschriftungen (Kardinalitaeten): 16 px vom Rand entlang der Linie, leicht seitlich.
       function endText(p, richtung, txt) {
-        var tt = document.createElementNS(NS, "text");
+        var tt = svgEl("text");
         tt.setAttribute("class", "elabel");
         tt.setAttribute("x", p.x + ux * 16 * richtung - uy * 9);
         tt.setAttribute("y", p.y + uy * 16 * richtung + ux * 9);
@@ -2707,7 +2740,7 @@
       if (pf.toLabel) endText(p2, -1, pf.toLabel);
 
       if (e.label) {
-        var tx = document.createElementNS(NS, "text");
+        var tx = svgEl("text");
         tx.setAttribute("class", "elabel");
         tx.setAttribute("x", (p1.x + p2.x) / 2);
         tx.setAttribute("y", (p1.y + p2.y) / 2);
@@ -2717,7 +2750,7 @@
       // Der Pfeil liegt auf der Ebene des tieferen seiner beiden Kästen:
       // damit deckt eine nach hinten gelegte Notiz ihn nicht mehr zu, und
       // die verbundenen Kästen bleiben trotzdem über ihm.
-      sheet(istNah ? nah.hoch + 1 : Math.min(a.z || 0, b.z || 0)).appendChild(g);
+      pfeilEbene(istNah ? nah.hoch + 1 : Math.min(a.z || 0, b.z || 0)).appendChild(g);
     });
 
     // Vorschau beim Verbinden
@@ -2726,45 +2759,42 @@
       if (s) {
         var dx2 = drag.cur.x - center(s).x, dy2 = drag.cur.y - center(s).y;
         var q = border(s, dx2, dy2);
-        var pv = document.createElementNS(NS, "path");
+        var pv = svgEl("path");
         pv.setAttribute("class", "line");
         pv.setAttribute("d", "M" + q.x + "," + q.y + " L" + drag.cur.x + "," + drag.cur.y);
         pv.setAttribute("stroke-dasharray", "5 4");
-        var vs = sheet(topZ() + 1);
-        vs.appendChild(pv);
+        var vsvg = pfeilEbene(topZ() + 1);
+        vsvg.appendChild(pv);
         var vl = Math.hypot(dx2, dy2) || 1;
-        kopf(vs, drag.cur, dx2 / vl, dy2 / vl, 1.6, false);
+        kopf(vsvg, drag.cur, dx2 / vl, dy2 / vl, 1.6, false);
       }
     }
   }
 
+  // Die Zeilen des Inspektors und die Knoepfe im Abschnitt Anordnen — je Auswahl an oder aus.
+  // Wer eine Zeile ergaenzt, traegt sie hier ein; renderInspector nennt dann nur die sichtbaren.
+  var INSP_ZEILEN = ["size-row", "widget-row", "frame-row", "tbl-row", "entity-row", "edge-row", "align-row", "text-row", "meta-row", "note-row"];
+  var INSP_KNOEPFE = ["btn-front", "btn-back", "btn-dup", "btn-hide"];
+  function inspZeilen(offen) { INSP_ZEILEN.forEach(function (id) { $(id).hidden = !offen[id]; }); }
+  function inspKnoepfe(offen) { INSP_KNOEPFE.forEach(function (id) { $(id).style.display = offen[id] ? "" : "none"; }); }
+  function farbfelderMarkieren(farbe) { druecken($("swatches").children, function (b) { return b.dataset.color === farbe; }); }
+  // Waehrend in einem Feld getippt wird, den Wert NICHT ueberschreiben — sonst wirft ein
+  // hereinkommender Stand den halben Satz weg (gilt fuer jedes Inspektor-Feld).
+  function wertSetzen(id, wert) { var f = $(id); if (document.activeElement !== f) f.value = wert; }
+
   function renderInspector() {
     var box = $("inspector");
-    $("align-row").hidden = true;
     if (mehrfach()) {
-      // Sammel-Modus: Farbe (nur Elemente) und Loeschen wirken auf alle, der Rest ist verborgen.
+      // Sammel-Modus: Farbe (nur Elemente), Ausrichten, Ausblenden und Loeschen wirken auf alle.
       box.classList.add("on");
       $("insp-kind").textContent = selSet.size + " Elemente" +
         (selEdges.size ? " · " + selEdges.size + (selEdges.size === 1 ? " Pfeil" : " Pfeile") : "");
       $("swatches").style.display = selSet.size ? "flex" : "none";
-      var sw2 = $("swatches").children;
-      for (var j = 0; j < sw2.length; j++) sw2[j].setAttribute("aria-pressed", "false");
-      $("btn-front").style.display = "none";
-      $("btn-back").style.display = "none";
-      $("btn-dup").style.display = "none";
-      $("btn-hide").style.display = selSet.size ? "" : "none";
+      farbfelderMarkieren(null);
+      inspKnoepfe({ "btn-hide": selSet.size > 0 });
       sichtbarKnopfSetzen();
-      $("text-row").hidden = true;
-      $("size-row").hidden = true;
-      $("edge-row").hidden = true;
-      $("note-row").hidden = true;
-      $("tbl-row").hidden = true;
-      $("frame-row").hidden = true;
-      $("widget-row").hidden = true;
-      $("entity-row").hidden = true;
-      $("meta-row").hidden = true;
+      inspZeilen({ "align-row": selSet.size >= 2 });
       $("insp-coords").textContent = "Auswahl-Rahmen · Entf löscht alle";
-      $("align-row").hidden = selSet.size < 2;
       $("insp-id").textContent = "";
       return;
     }
@@ -2776,78 +2806,37 @@
       if (!n) { sel = null; box.classList.remove("on"); return; }
       $("insp-kind").textContent = KINDS[n.kind].label;
       $("swatches").style.display = "flex";
-      var sws = $("swatches").children;
-      for (var i = 0; i < sws.length; i++) {
-        sws[i].setAttribute("aria-pressed", sws[i].dataset.color === n.color ? "true" : "false");
-      }
-      $("btn-front").style.display = "";
-      $("btn-back").style.display = "";
-      $("btn-dup").style.display = "";
-      $("btn-hide").style.display = "";
+      farbfelderMarkieren(n.color);
+      inspKnoepfe({ "btn-front": true, "btn-back": true, "btn-dup": true, "btn-hide": true });
       sichtbarKnopfSetzen();
-      $("edge-row").hidden = true;
-      $("text-row").hidden = false;
-      $("note-row").hidden = false;
-      $("tbl-row").hidden = n.kind !== "table";
-      $("frame-row").hidden = n.kind !== "frame";
-      $("widget-row").hidden = n.kind !== "widget";
-      $("entity-row").hidden = !hatFelder(n);
-      $("meta-row").hidden = false;
-      var lk = $("node-link");
-      if (document.activeElement !== lk) lk.value = n.link || "";
-      var sb = $("meta-row").querySelectorAll("button[data-status]");
-      for (var si = 0; si < sb.length; si++) sb[si].setAttribute("aria-pressed", sb[si].dataset.status === statusLesen(n.status) ? "true" : "false");
-      if (hatFelder(n)) {
-        var ef = $("entity-text");
-        if (document.activeElement !== ef) ef.value = entityText(n);
-      }
+      inspZeilen({ "text-row": !ohneText(n), "size-row": true, "note-row": true, "meta-row": true, "tbl-row": n.kind === "table",
+        "frame-row": n.kind === "frame", "widget-row": n.kind === "widget", "entity-row": hatFelder(n) });
+      wertSetzen("node-link", n.link || "");
+      druecken($("meta-row").querySelectorAll("button[data-status]"), function (b) { return b.dataset.status === statusLesen(n.status); });
+      if (hatFelder(n)) wertSetzen("entity-text", entityText(n));
       if (n.kind === "widget") $("widget-variant").value = variantLesen(n.variant);
       if (n.kind === "frame") $("frame-layout").value = n.layout || "frei";
-      $("text-row").hidden = ohneText(n);
-      $("size-row").hidden = false;
       groesseFelderSetzen(n);
       $("btn-auto").style.display = hatFelder(n) ? "" : "none";
       $("btn-auto").setAttribute("aria-pressed", n.auto ? "true" : "false");
       if (n.kind === "table") tblGitterBauen(n);
       textFelderSetzen(n);
-      // Wie beim Pfeiltext: waehrend getippt wird, den Wert NICHT ueberschreiben —
-      // sonst wirft ein hereinkommender Stand den halben Satz weg.
-      var nf = $("node-note");
-      if (document.activeElement !== nf) nf.value = n.note || "";
-      $("insp-coords").textContent =
-        "Mitte " + Math.round(n.x + n.w / 2) + " · " + Math.round(n.y + n.h / 2) +
-        "   " + Math.round(n.w) + "×" + Math.round(n.h);
+      wertSetzen("node-note", n.note || "");
+      $("insp-coords").textContent = koordinatenText(n);
       $("insp-id").textContent = "nodes/" + sel.id;
     } else {
+      var e = edges.get(sel.id), pf = pfeilFelder(e || {});
       $("insp-kind").textContent = "Pfeil";
       $("swatches").style.display = "none";
-      $("btn-front").style.display = "none";
-      $("btn-back").style.display = "none";
-      $("btn-dup").style.display = "none";
-      $("btn-hide").style.display = "none";
-      var e = edges.get(sel.id);
-      $("text-row").hidden = true;
-      $("size-row").hidden = true;
-      $("edge-row").hidden = false;
-      $("note-row").hidden = true;
-      $("tbl-row").hidden = true;
-      $("frame-row").hidden = true;
-      $("widget-row").hidden = true;
-      $("entity-row").hidden = true;
-      $("meta-row").hidden = true;
-      var f = $("edge-label");
-      if (document.activeElement !== f) f.value = e ? (e.label || "") : "";
-      var pf = pfeilFelder(e || {});
-      var eb = $("edge-row").querySelectorAll("button[data-estyle],button[data-eends],button[data-ehead]");
-      for (var ei = 0; ei < eb.length; ei++) {
-        var on = (eb[ei].dataset.estyle && eb[ei].dataset.estyle === pf.style) ||
-                 (eb[ei].dataset.eends && eb[ei].dataset.eends === pf.ends) ||
-                 (eb[ei].dataset.ehead && pf.head === "triangle");
-        eb[ei].setAttribute("aria-pressed", on ? "true" : "false");
-      }
-      var ef1 = $("edge-from"), ef2 = $("edge-to");
-      if (document.activeElement !== ef1) ef1.value = pf.fromLabel;
-      if (document.activeElement !== ef2) ef2.value = pf.toLabel;
+      inspKnoepfe({});
+      inspZeilen({ "edge-row": true });
+      wertSetzen("edge-label", e ? (e.label || "") : "");
+      druecken($("edge-row").querySelectorAll("button[data-estyle],button[data-eends],button[data-ehead]"), function (b) {
+        return (b.dataset.estyle && b.dataset.estyle === pf.style) || (b.dataset.eends && b.dataset.eends === pf.ends) ||
+          (b.dataset.ehead && pf.head === "triangle");
+      });
+      wertSetzen("edge-from", pf.fromLabel);
+      wertSetzen("edge-to", pf.toLabel);
       $("insp-coords").textContent = "Reiter: " + sheetName(activeSheet);
       $("insp-id").textContent = "edges/" + sel.id;
     }
@@ -2925,7 +2914,7 @@
   }
 
   function beginEdit(id) {
-    var el = layer.querySelector('.node[data-id="' + id + '"]');
+    var el = knotenEl(id);
     if (!el) return;
     var n = nodes.get(id);
     var t = el.querySelector(".txt");
@@ -2992,7 +2981,7 @@
   // (Schnappschuesse warten), Fokus per setTimeout, finish raeumt auf. Tab springt
   // zur naechsten Zelle, Enter schliesst ab, Esc verwirft.
   function beginCellEdit(id, r, c) {
-    var el = layer.querySelector('.node[data-id="' + id + '"]');
+    var el = knotenEl(id);
     if (!el) return;
     var n = nodes.get(id);
     if (!n || n.kind !== "table" || !n.cells || !n.cells[r]) return;
@@ -3072,8 +3061,7 @@
         if (!allEdges.has(eid)) return;   // ggf. schon mit seinem Kasten weg
         edges.delete(eid); allEdges.delete(eid); dropDoc("edges", eid);
       });
-      selSet.clear(); selEdges.clear();
-      sel = null;
+      nichtsWaehlen();
       render();
       return;
     }
@@ -3142,18 +3130,18 @@
       svg: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5" fill="currentColor"/>' }
   ];
 
+  // Taste -> Werkzeug, aus TOOLS abgeleitet (eine Liste, keine zweite im Tastatur-Handler).
+  var TASTE = {};
+  TOOLS.forEach(function (t) { TASTE[t.key.toLowerCase()] = t.id; });
+
   function setTool(t) {
     tool = t;
     linkFrom = null;
-    var bs = document.querySelectorAll("#tools button, #tools2 button");
-    for (var i = 0; i < bs.length; i++) {
-      bs[i].setAttribute("aria-pressed", bs[i].dataset.tool === t ? "true" : "false");
-    }
+    druecken(document.querySelectorAll("#tools button, #tools2 button"), function (b) { return b.dataset.tool === t; });
     canvas.classList.toggle("placing", !!KINDS[t] && activeSheet !== CATCH);
     canvas.classList.toggle("linking", t === "link");
     canvas.classList.toggle("hand", t === "hand");
-    var tl = layer.querySelectorAll(".link-target");
-    for (var j = 0; j < tl.length; j++) tl[j].classList.remove("link-target");
+    linkZielWeg();
     renderWires();
   }
 
@@ -3187,8 +3175,7 @@
         render();
         return;
       }
-      if (!sel || sel.type !== "node") return;
-      var n = nodes.get(sel.id); if (!n) return;
+      var n = gewaehlterKnoten(); if (!n) return;
       n.color = c; putNode(sel.id); render();
     });
     $("swatches").appendChild(b);
@@ -3242,15 +3229,11 @@
     $("fs-val").textContent = schriftgrad(n) + " px";
     $("t-bold").setAttribute("aria-pressed", fett(n) ? "true" : "false");
     var aus = ausricht(n);
-    ["left", "center", "right"].forEach(function (x) {
-      $("al-" + x).setAttribute("aria-pressed", x === aus ? "true" : "false");
-    });
+    ALIGNS.forEach(function (x) { $("al-" + x).setAttribute("aria-pressed", x === aus ? "true" : "false"); });
     // Senkrecht (2.17): nur bei Bauarten, die den Text frei im Kasten setzen.
     $("va-grp").hidden = !senkrechtMoeglich(n);
     var va = senkrecht(n);
-    ["top", "middle", "bottom"].forEach(function (x) {
-      $("va-" + x).setAttribute("aria-pressed", x === va ? "true" : "false");
-    });
+    VALIGNS.forEach(function (x) { $("va-" + x).setAttribute("aria-pressed", x === va ? "true" : "false"); });
   }
   // Groesse ziehen (2.17): acht Griffe. dir aus n/s/e/w; die gegenueberliegende Kante bleibt
   // stehen. Start/Ende bleiben symmetrisch (w = h), Mindestmass dort 24, sonst 48 x 30.
@@ -3280,27 +3263,58 @@
     // vor dem Raster — gemessen an der ROHEN Mausposition, mit roter Linie.
     hilfslinienWeg();
     if (GUIDES) {
-      var naehe = GUIDE_NAEHE / (view.k || 1), fx = [], fy = [];
-      nodes.forEach(function (o, oid) { if (oid === d.id) return; fx.push(o.x, o.x + o.w / 2, o.x + o.w); fy.push(o.y, o.y + o.h / 2, o.y + o.h); });
-      var t;
-      if (hatE && (t = guideTreffer([d.x0 + d.w0 + dx], fx, naehe)) && t.pos - d.x0 >= 48) { w = Math.round(t.pos - d.x0); hilfslinieZeigen("senkrecht", t.pos); }
-      if (hatW && (t = guideTreffer([d.x0 + dx], fx, naehe)) && d.x0 + d.w0 - t.pos >= 48) { x = Math.round(t.pos); w = d.x0 + d.w0 - x; hilfslinieZeigen("senkrecht", t.pos); }
-      if (hatS && (t = guideTreffer([d.y0 + d.h0 + dy], fy, naehe)) && t.pos - d.y0 >= 30) { h = Math.round(t.pos - d.y0); hilfslinieZeigen("waagerecht", t.pos); }
-      if (hatN && (t = guideTreffer([d.y0 + dy], fy, naehe)) && d.y0 + d.h0 - t.pos >= 30) { y = Math.round(t.pos); h = d.y0 + d.h0 - y; hilfslinieZeigen("waagerecht", t.pos); }
+      var naehe = GUIDE_NAEHE / (view.k || 1), ausser = {}; ausser[d.id] = 1;
+      var nk = nachbarKanten(ausser), t;
+      if (hatE && (t = guideTreffer([d.x0 + d.w0 + dx], nk.x, naehe)) && t.pos - d.x0 >= 48) { w = Math.round(t.pos - d.x0); hilfslinieZeigen("senkrecht", t.pos); }
+      if (hatW && (t = guideTreffer([d.x0 + dx], nk.x, naehe)) && d.x0 + d.w0 - t.pos >= 48) { x = Math.round(t.pos); w = d.x0 + d.w0 - x; hilfslinieZeigen("senkrecht", t.pos); }
+      if (hatS && (t = guideTreffer([d.y0 + d.h0 + dy], nk.y, naehe)) && t.pos - d.y0 >= 30) { h = Math.round(t.pos - d.y0); hilfslinieZeigen("waagerecht", t.pos); }
+      if (hatN && (t = guideTreffer([d.y0 + dy], nk.y, naehe)) && d.y0 + d.h0 - t.pos >= 30) { y = Math.round(t.pos); h = d.y0 + d.h0 - y; hilfslinieZeigen("waagerecht", t.pos); }
     }
     return { x: x, y: y, w: w, h: h };
+  }
+  // Die Zeile unter dem Inspektor: Mitte und Groesse (2.27: Mitte, gespeichert bleibt die Ecke).
+  function koordinatenText(n) {
+    return "Mitte " + Math.round(n.x + n.w / 2) + " · " + Math.round(n.y + n.h / 2) + "   " + Math.round(n.w) + "×" + Math.round(n.h);
+  }
+  // Offenes Inspektor-Feld uebernehmen (2.37, Issue #6): wer in ein Feld tippt und dann auf die
+  // Flaeche klickt, verlor den Text — das mousedown leerte die Auswahl, und das change-Ereignis
+  // kam erst danach, als sel schon null war. Darum ruft jeder, der die Auswahl wechselt (mousedown
+  // auf der Flaeche, Reiterwechsel), ZUERST inspektorAbschliessen(): es schreibt das fokussierte
+  // Feld fuer die NOCH gueltige Auswahl und nimmt ihm den Fokus. Jedes Feld traegt sich ueber
+  // feldAnbinden() hier ein — Feld-Kennung -> Schreibfunktion.
+  var inspAbschluss = {};
+  function inspektorAbschliessen() {
+    var ae = document.activeElement;
+    if (!ae || !$("inspector").contains(ae)) return false;
+    if (ae.tagName !== "INPUT" && ae.tagName !== "TEXTAREA") return false;
+    if (inspAbschluss[ae.id]) inspAbschluss[ae.id]();
+    else if (ae.dataset.r !== undefined && ae.closest("#tbl-grid")) zelleSetzen(+ae.dataset.r, +ae.dataset.c, ae.value);
+    else return false;
+    ae.blur();
+    return true;
+  }
+  // Ein Inspektor-Feld anbinden — der EINE Schreibpfad fuer alle Textfelder: change uebernimmt,
+  // Enter (bei Langtext Strg+Enter) uebernimmt und verlaesst das Feld, Esc stellt den alten Wert
+  // wieder her und verlaesst es. Tasten bleiben im Feld (Entf/Buchstaben sind dort kein Brett-Kuerzel).
+  function feldAnbinden(id, uebernehmen, zuruecksetzen, strgEnter) {
+    var f = $(id);
+    f.addEventListener("change", uebernehmen);
+    f.addEventListener("keydown", function (ev) {
+      ev.stopPropagation();
+      if (ev.key === "Enter" && (!strgEnter || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); uebernehmen(); f.blur(); }
+      else if (ev.key === "Escape") { ev.preventDefault(); zuruecksetzen(); f.blur(); }
+    });
+    inspAbschluss[id] = uebernehmen;
+    return f;
   }
   // Position und Groesse als Zahlen im Inspektor (2.17).
   function groesseFelderSetzen(n) {
     // Die Felder zeigen die MITTE (2.27, Issue #2); gespeichert bleibt die Ecke oben links.
-    [["sz-x", n.x + n.w / 2], ["sz-y", n.y + n.h / 2], ["sz-w", n.w], ["sz-h", n.h]].forEach(function (p) {
-      var f = $(p[0]);
-      if (document.activeElement !== f) f.value = Math.round(p[1]);
-    });
+    wertSetzen("sz-x", Math.round(n.x + n.w / 2)); wertSetzen("sz-y", Math.round(n.y + n.h / 2));
+    wertSetzen("sz-w", Math.round(n.w)); wertSetzen("sz-h", Math.round(n.h));
   }
   function groesseAusFeldern() {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n) return;
+    var n = gewaehlterKnoten(); if (!n) return;
     if (gesperrt()) { groesseFelderSetzen(n); return; }
     var x = +$("sz-x").value, y = +$("sz-y").value, w = +$("sz-w").value, h = +$("sz-h").value;
     if (!isFinite(x) || !isFinite(y) || !isFinite(w) || !isFinite(h)) { groesseFelderSetzen(n); return; }
@@ -3313,13 +3327,7 @@
     putNode(sel.id); render();
   }
   ["sz-x", "sz-y", "sz-w", "sz-h"].forEach(function (id) {
-    var f = $(id);
-    f.addEventListener("change", groesseAusFeldern);
-    f.addEventListener("keydown", function (ev) {
-      ev.stopPropagation();
-      if (ev.key === "Enter") { ev.preventDefault(); groesseAusFeldern(); f.blur(); }
-      else if (ev.key === "Escape") { ev.preventDefault(); var n = sel && sel.type === "node" ? nodes.get(sel.id) : null; if (n) groesseFelderSetzen(n); f.blur(); }
-    });
+    feldAnbinden(id, groesseAusFeldern, function () { var n = gewaehlterKnoten(); if (n) groesseFelderSetzen(n); });
   });
   // Auto-Groesse (2.39): an = sofort anpassen und bei jeder Inhalts-Aenderung wieder; aus = bleibt.
   $("btn-auto").addEventListener("click", function () {
@@ -3337,8 +3345,7 @@
   // Aendern ist auf dem Auffang-Reiter ausdruecklich erlaubt (kein catchGesperrt):
   // der Guard gehoert nur an die Erzeuger.
   function textAendern(fn) {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n) return;
+    var n = gewaehlterKnoten(); if (!n) return;
     fn(n);
     if (n.auto && hatFelder(n)) autoAnpassen(n);
     putNode(sel.id);
@@ -3353,15 +3360,11 @@
   $("t-bold").addEventListener("click", function () {
     textAendern(function (n) { n.bold = fett(n) ? 2 : 1; });
   });
-  ["left", "center", "right"].forEach(function (a) {
-    $("al-" + a).addEventListener("click", function () {
-      textAendern(function (n) { n.align = a; });
-    });
+  ALIGNS.forEach(function (a) {
+    $("al-" + a).addEventListener("click", function () { textAendern(function (n) { n.align = a; }); });
   });
-  ["top", "middle", "bottom"].forEach(function (a) {
-    $("va-" + a).addEventListener("click", function () {
-      textAendern(function (n) { n.valign = a; });
-    });
+  VALIGNS.forEach(function (a) {
+    $("va-" + a).addEventListener("click", function () { textAendern(function (n) { n.valign = a; }); });
   });
 
   // Welche Elemente des offenen Reiters liegen GANZ in n und vor n? Genau die wandern
@@ -3384,7 +3387,7 @@
     if (selSet.size + selEdges.size !== 1) return;
     if (selSet.size) sel = { type: "node", id: selSet.values().next().value };
     else sel = { type: "edge", id: selEdges.values().next().value };
-    selSet.clear(); selEdges.clear();
+    auswahlLeeren();
   }
   // Trifft die Strecke a-b das Rechteck? Endpunkt drin ODER Schnitt mit einer der vier Kanten.
   function strichTrifft(a, b, rx, ry, rw, rh) {
@@ -3401,6 +3404,18 @@
     return kreuzt(a, b, A, B) || kreuzt(a, b, B, C) || kreuzt(a, b, C, D) || kreuzt(a, b, D, A);
   }
 
+  // Das Element unter dem Mauszeiger (beim Pfeil ziehen) und die Hervorhebung des Ziels.
+  function knotenUnterMaus(ev) { return naechst(document.elementFromPoint(ev.clientX, ev.clientY), ".node"); }
+  function linkZielWeg() { $$(".link-target", layer).forEach(function (el) { el.classList.remove("link-target"); }); }
+  // Kanten und Mitten aller Elemente des Reiters ausser den genannten (fuer die Hilfslinien).
+  function nachbarKanten(ausser) {
+    var x = [], y = [];
+    nodes.forEach(function (m, mid) {
+      if (ausser[mid]) return;
+      x.push(m.x, m.x + m.w / 2, m.x + m.w); y.push(m.y, m.y + m.h / 2, m.y + m.h);
+    });
+    return { x: x, y: y };
+  }
   function mitnehmer(id, n) {
     var out = [];
     nodes.forEach(function (m, mid) {
@@ -3429,8 +3444,7 @@
     if (!nodes.has(id)) return;
     if (ohneText(nodes.get(id))) return;
     if (nodes.get(id).hidden === true) { toast("Ausgeblendet — erst einblenden (Strg+Umschalt+H)."); return; }   // 2.50
-    selSet.clear(); selEdges.clear();
-    sel = { type: "node", id: id };
+        waehlen("node", id);
     render();
     if (r >= 0) beginCellEdit(id, r, c); else beginEdit(id);
   }
@@ -3505,39 +3519,17 @@
     var tgt = ev.target;
     if (inspektorAbschliessen()) { var unter = document.elementFromPoint(ev.clientX, ev.clientY); if (unter) tgt = unter; }
 
-    var grip = tgt.closest ? tgt.closest(".grip") : null;
-    var nodeEl = tgt.closest ? tgt.closest(".node") : null;
-    // Tabellen-Griffe (2.35): Spaltenbreite / Zeilenhoehe ziehen. Beim ersten Ziehen werden ALLE
-    // aktuellen Masse festgehalten, damit sich nur die eine Spalte/Zeile aendert und der Rest bleibt.
-    var tg = tgt.closest ? tgt.closest(".tbl-cgrip, .tbl-rgrip") : null;
-    if (tg && nodeEl) {
-      ev.preventDefault();
-      if (gesperrt()) return;
-      var tn = nodes.get(nodeEl.dataset.id); if (!tn || tn.kind !== "table") return;
-      var spalte = tg.classList.contains("tbl-cgrip");
-      var zellen = tn.cells || tabelleLeer();
-      var masse = spalte ? tabellenMasseLesen(nodeEl, "col") : tabellenMasseLesen(nodeEl, "row");
-      if (spalte) { if (!masseGueltig(tn.colW, zellen[0].length)) tn.colW = masse; }
-      else { if (!masseGueltig(tn.rowH, zellen.length)) tn.rowH = masse; }
-      selSet.clear(); selEdges.clear();
-      sel = { type: "node", id: nodeEl.dataset.id };
-      drag = { mode: spalte ? "tblcol" : "tblrow", id: nodeEl.dataset.id, idx: +tg.dataset.idx,
-               start: toBoard(ev.clientX, ev.clientY), m0: (spalte ? tn.colW : tn.rowH)[+tg.dataset.idx], griff: tg };
-      // Raster (2.46): die Trennlinie soll auf dem Raster landen, nicht das Mass. Dafuer die
-      // Brett-Position der Spalten-/Zeilen-ANFANGSKANTE merken (aus dem DOM gemessen).
-      var td0 = nodeEl.querySelector(spalte ? 'td[data-r="0"][data-c="' + tg.dataset.idx + '"]' : 'td[data-c="0"][data-r="' + tg.dataset.idx + '"]');
-      if (td0) { var tr0 = td0.getBoundingClientRect(), b0 = toBoard(tr0.left, tr0.top); drag.basis = spalte ? b0.x : b0.y; }
-      tg.classList.add("zieht");
-      render();
-      return;
-    }
-    var wireEl = tgt.closest ? tgt.closest("g.wire") : null;
+    var grip = naechst(tgt, ".grip");
+    var nodeEl = naechst(tgt, ".node");
+    var tg = naechst(tgt, ".tbl-cgrip, .tbl-rgrip");
+    if (tg && nodeEl) { ev.preventDefault(); tabellenGriffAnfassen(ev, tg, nodeEl); return; }
+    var wireEl = naechst(tgt, "g.wire");
 
     // Doppelklick selbst erkennen (s. letzterKlick): zweiter Klick auf dasselbe Element
     // innerhalb von 400 ms, mit Auswaehlen-Werkzeug -> zum Tippen oeffnen, kein Ziehen.
     var jetzt = Date.now();
     var ziel = grip ? null
-      : nodeEl ? { typ: "node", id: nodeEl.dataset.id, td: tgt.closest ? tgt.closest("td") : null }
+      : nodeEl ? { typ: "node", id: nodeEl.dataset.id, td: naechst(tgt, "td") }
       : wireEl ? { typ: "edge", id: wireEl.dataset.edge } : null;
     if (ziel && tool === "select" && letzterKlick && jetzt - letzterKlick.t < 400 &&
         letzterKlick.typ === ziel.typ && letzterKlick.id === ziel.id) {
@@ -3561,8 +3553,7 @@
       ev.preventDefault();
       if (gesperrt()) return;
       var gn = nodes.get(grip.dataset.grip);
-      selSet.clear(); selEdges.clear();
-      sel = { type: "node", id: grip.dataset.grip };
+      waehlen("node", grip.dataset.grip);
       drag = {
         mode: "resize", id: grip.dataset.grip, dir: grip.dataset.dir || "se",
         start: toBoard(ev.clientX, ev.clientY), x0: gn.x, y0: gn.y, w0: gn.w, h0: gn.h
@@ -3596,7 +3587,7 @@
       if (editing && editing.id === id) return;
       ev.preventDefault();
       if (ev.shiftKey) { auswahlUmschalten("node", id); render(); return; }
-      if (frozen) { selSet.clear(); selEdges.clear(); sel = { type: "node", id: id }; render(); return; }
+      if (frozen) { waehlen("node", id); render(); return; }
       var n = nodes.get(id);
       var kinder;
       if (mehrfach() && selSet.has(id)) {
@@ -3608,8 +3599,7 @@
         });
         sel = null;
       } else {
-        selSet.clear(); selEdges.clear();
-        sel = { type: "node", id: id };
+        waehlen("node", id);
         // Mitnehmen: alles, was ganz in diesem Element liegt UND vor ihm (hoeheres z).
         // So wird eine grosse Notiz "nach hinten" zum Traeger fuer das, was darauf
         // liegt — ohne Gruppen-Feld in der Datenbank. Alt gedrueckt = nur dieses Element.
@@ -3628,15 +3618,14 @@
     if (wireEl) {
       ev.preventDefault();
       if (ev.shiftKey) { auswahlUmschalten("edge", wireEl.dataset.edge); render(); return; }
-      selSet.clear(); selEdges.clear();
-      sel = { type: "edge", id: wireEl.dataset.edge };
+      waehlen("edge", wireEl.dataset.edge);
       render();
       return;
     }
 
     // leere Fläche: mit Auswaehlen einen Rahmen ziehen, sonst die Ansicht schieben
     var ergaenzen = ev.shiftKey && tool === "select";
-    if (!ergaenzen && (sel || selSet.size)) { sel = null; selSet.clear(); selEdges.clear(); render(); }
+    if (!ergaenzen && (sel || selSet.size)) { nichtsWaehlen(); render(); }
     if (tool === "select") {
       ev.preventDefault();
       drag = { mode: "marquee", start: toBoard(ev.clientX, ev.clientY), ergaenzen: ergaenzen };
@@ -3645,6 +3634,26 @@
     startPan(ev);
   });
 
+  // Tabellen-Griffe (2.35): Spaltenbreite / Zeilenhoehe ziehen. Beim ersten Ziehen werden ALLE
+  // aktuellen Masse festgehalten, damit sich nur die eine Spalte/Zeile aendert und der Rest bleibt.
+  function tabellenGriffAnfassen(ev, tg, nodeEl) {
+    if (gesperrt()) return;
+    var tn = nodes.get(nodeEl.dataset.id); if (!tn || tn.kind !== "table") return;
+    var spalte = tg.classList.contains("tbl-cgrip");
+    var zellen = tn.cells || tabelleLeer();
+    var masse = tabellenMasseLesen(nodeEl, spalte ? "col" : "row");
+    if (spalte) { if (!masseGueltig(tn.colW, zellen[0].length)) tn.colW = masse; }
+    else { if (!masseGueltig(tn.rowH, zellen.length)) tn.rowH = masse; }
+    waehlen("node", nodeEl.dataset.id);
+    drag = { mode: spalte ? "tblcol" : "tblrow", id: nodeEl.dataset.id, idx: +tg.dataset.idx,
+             start: toBoard(ev.clientX, ev.clientY), m0: (spalte ? tn.colW : tn.rowH)[+tg.dataset.idx], griff: tg };
+    // Raster (2.46): die Trennlinie soll auf dem Raster landen, nicht das Mass. Dafuer die
+    // Brett-Position der Spalten-/Zeilen-ANFANGSKANTE merken (aus dem DOM gemessen).
+    var td0 = nodeEl.querySelector(spalte ? 'td[data-r="0"][data-c="' + tg.dataset.idx + '"]' : 'td[data-c="0"][data-r="' + tg.dataset.idx + '"]');
+    if (td0) { var tr0 = td0.getBoundingClientRect(), b0 = toBoard(tr0.left, tr0.top); drag.basis = spalte ? b0.x : b0.y; }
+    tg.classList.add("zieht");
+    render();
+  }
   function startPan(ev) {
     ev.preventDefault();
     drag = { mode: "pan", sx: ev.clientX, sy: ev.clientY, vx: view.x, vy: view.y };
@@ -3686,23 +3695,22 @@
         var rohX = drag.x0 + Math.round(p.x - drag.start.x), rohY = drag.y0 + Math.round(p.y - drag.start.y);
         var naehe = GUIDE_NAEHE / (view.k || 1);
         var mit = {}; mit[drag.id] = 1; drag.kinder.forEach(function (k) { mit[k.id] = 1; });
-        var fx = [], fy = [];
-        nodes.forEach(function (m, mid) { if (mit[mid]) return; fx.push(m.x, m.x + m.w / 2, m.x + m.w); fy.push(m.y, m.y + m.h / 2, m.y + m.h); });
-        var tx = guideTreffer([rohX, rohX + n.w / 2, rohX + n.w], fx, naehe);
-        var ty = guideTreffer([rohY, rohY + n.h / 2, rohY + n.h], fy, naehe);
+        var nk = nachbarKanten(mit);
+        var tx = guideTreffer([rohX, rohX + n.w / 2, rohX + n.w], nk.x, naehe);
+        var ty = guideTreffer([rohY, rohY + n.h / 2, rohY + n.h], nk.y, naehe);
         if (tx) { ddx = Math.round(rohX + tx.delta) - drag.x0; hilfslinieZeigen("senkrecht", tx.pos); }
         if (ty) { ddy = Math.round(rohY + ty.delta) - drag.y0; hilfslinieZeigen("waagerecht", ty.pos); }
       }
       n.x = drag.x0 + ddx;
       n.y = drag.y0 + ddy;
       drag.moved = true;
-      var el = layer.querySelector('.node[data-id="' + drag.id + '"]');
+      var el = knotenEl(drag.id);
       if (el) { el.style.left = n.x + "px"; el.style.top = n.y + "px"; }
       griffeSetzen(griffeVon(drag.id), n);
       drag.kinder.forEach(function (k) {
         var m = nodes.get(k.id); if (!m) return;
         m.x = k.x0 + ddx; m.y = k.y0 + ddy;
-        var kel = layer.querySelector('.node[data-id="' + k.id + '"]');
+        var kel = knotenEl(k.id);
         if (kel) { kel.style.left = m.x + "px"; kel.style.top = m.y + "px"; }
         griffeSetzen(griffeVon(k.id), m);
       });
@@ -3716,7 +3724,7 @@
       var mass = drag.m0 + delta;
       if (drag.basis !== undefined) mass = snap(drag.basis + mass) - drag.basis;   // Trennlinie rastet (2.46)
       arr[drag.idx] = Math.round(Math.max(TBL_MIN_MASS, Math.min(TBL_MAX_MASS, mass)));
-      var tel = layer.querySelector('.node[data-id="' + drag.id + '"]');
+      var tel = knotenEl(drag.id);
       if (tel) tabellenMassAnwenden(tel, tm);
       return;
     }
@@ -3724,20 +3732,17 @@
       var m = nodes.get(drag.id); if (!m) return;
       var g = groesseZiehen(m, drag, p);
       m.x = g.x; m.y = g.y; m.w = g.w; m.h = g.h;
-      var el2 = layer.querySelector('.node[data-id="' + drag.id + '"]');
+      var el2 = knotenEl(drag.id);
       if (el2) { el2.style.left = m.x + "px"; el2.style.top = m.y + "px"; el2.style.width = m.w + "px"; el2.style.height = m.h + "px"; if (m.kind === "table") tabellenGriffeLegen(el2, m); }
       griffeSetzen(griffeVon(drag.id), m);
       renderWires();
-      $("insp-coords").textContent =
-        "Mitte " + Math.round(m.x + m.w / 2) + " · " + Math.round(m.y + m.h / 2) + "   " + m.w + "×" + m.h;
+      $("insp-coords").textContent = koordinatenText(m);
       return;
     }
     if (drag.mode === "link") {
       drag.cur = p;
-      var over = document.elementFromPoint(ev.clientX, ev.clientY);
-      var oel = over && over.closest ? over.closest(".node") : null;
-      var prev = layer.querySelectorAll(".link-target");
-      for (var i = 0; i < prev.length; i++) prev[i].classList.remove("link-target");
+      var oel = knotenUnterMaus(ev);
+      linkZielWeg();
       if (oel && oel.dataset.id !== linkFrom) oel.classList.add("link-target");
       renderWires();
     }
@@ -3759,7 +3764,7 @@
         if (sel) (sel.type === "node" ? selSet : selEdges).add(sel.id);
         sel = null;
       } else {
-        selSet.clear(); selEdges.clear(); sel = null;
+        nichtsWaehlen();
       }
       if (rw >= 4 || rh >= 4) {
         // Beruehren reicht (wie in Figma): ein Element zaehlt, wenn sich die Rechtecke
@@ -3818,10 +3823,8 @@
       render();
     }
     else if (d.mode === "link") {
-      var over = document.elementFromPoint(ev.clientX, ev.clientY);
-      var oel = over && over.closest ? over.closest(".node") : null;
-      var prev = layer.querySelectorAll(".link-target");
-      for (var i = 0; i < prev.length; i++) prev[i].classList.remove("link-target");
+      var oel = knotenUnterMaus(ev);
+      linkZielWeg();
       if (oel && linkFrom && oel.dataset.id !== linkFrom) connect(linkFrom, oel.dataset.id);
       linkFrom = null;
       setTool("select");
@@ -3908,7 +3911,7 @@
     if (t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
 
     if (ev.key === "Delete" || ev.key === "Backspace") { ev.preventDefault(); removeSel(); return; }
-    if (ev.key === "Escape") { sel = null; selSet.clear(); selEdges.clear(); setTool("select"); render(); return; }
+    if (ev.key === "Escape") { nichtsWaehlen(); setTool("select"); render(); return; }
     // Strg+D / Strg+C / Strg+V (2.13). Ohne Auswahl laesst Strg+C den Browser machen (Text).
     if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
       var kk = ev.key.toLowerCase();
@@ -3923,10 +3926,8 @@
     if (ev.key === "Enter" && sel && sel.type === "edge") { ev.preventDefault(); editEdgeLabel(sel.id); return; }
     if (ev.shiftKey && ev.key === "!") { fit(); return; }
 
-    var map = { v: "select", h: "hand", b: "box", s: "sticky", d: "diamond", t: "text", g: "table", a: "link",
-                r: "frame", c: "code", "1": "start", "0": "end", w: "widget", e: "entity", m: "dbmodel", k: "classmodel" };
     var k = ev.key.toLowerCase();
-    if (map[k] && !ev.metaKey && !ev.ctrlKey) { setTool(map[k]); }
+    if (TASTE[k] && !ev.metaKey && !ev.ctrlKey) setTool(TASTE[k]);
   });
 
   /* ============================ Knöpfe ============================ */
@@ -3941,8 +3942,7 @@
   $("z-fit").addEventListener("click", fit);
   $("btn-del").addEventListener("click", removeSel);
   $("btn-front").addEventListener("click", function () {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n) return;
+    var n = gewaehlterKnoten(); if (!n) return;
     n.z = topZ() + 1; putNode(sel.id); render();
   });
   // Raster an/aus — je Betrachter, nicht im Brett.
@@ -3989,63 +3989,30 @@
   });
 
   // Pfeil-Art: der eine Schreibpfad fuer Linie, Spitzen, Kopf, Endbeschriftungen.
-  // Offenes Inspektor-Feld uebernehmen (2.37, Issue #6): wer in ein Feld tippt und dann auf die
-  // Flaeche klickt, verlor den Text — das mousedown leerte die Auswahl, und das change-Ereignis
-  // kam erst danach, als sel schon null war. Darum ruft jeder, der die Auswahl wechselt (mousedown
-  // auf der Flaeche, Reiterwechsel), ZUERST diese Funktion: sie schreibt das fokussierte Feld fuer
-  // die NOCH gueltige Auswahl und nimmt ihm den Fokus. Liefert true, wenn etwas uebernommen wurde.
-  var inspAbschluss = {};   // Feld-Kennung -> Schreibfunktion (fuer Felder mit eigener Closure)
-  function inspektorAbschliessen() {
-    var ae = document.activeElement;
-    if (!ae || !$("inspector").contains(ae)) return false;
-    if (ae.tagName !== "INPUT" && ae.tagName !== "TEXTAREA") return false;
-    var id = ae.id;
-    if (id === "node-note") commitNote();
-    else if (id === "node-link") commitLink();
-    else if (id === "entity-text") commitEntity();
-    else if (id === "edge-label") commitEdgeLabel();
-    else if (id === "sz-x" || id === "sz-y" || id === "sz-w" || id === "sz-h") groesseAusFeldern();
-    else if (inspAbschluss[id]) inspAbschluss[id]();
-    else if (ae.dataset.r !== undefined && ae.closest("#tbl-grid")) zelleSetzen(+ae.dataset.r, +ae.dataset.c, ae.value);
-    else return false;
-    ae.blur();
-    return true;
-  }
   function pfeilAendern(fn) {
-    if (!sel || sel.type !== "edge") return;
-    var e = edges.get(sel.id); if (!e) return;
+    var e = gewaehlterPfeil(); if (!e) return;
     var pf = pfeilFelder(e);
     e.style = pf.style; e.ends = pf.ends; e.head = pf.head; e.fromLabel = pf.fromLabel; e.toLabel = pf.toLabel;
     fn(e);
     putEdge(sel.id);
     render();
   }
-  var pfeilKnoepfe = $("edge-row").querySelectorAll("button[data-estyle],button[data-eends],button[data-ehead]");
-  for (var pk = 0; pk < pfeilKnoepfe.length; pk++) {
-    pfeilKnoepfe[pk].addEventListener("click", function () {
-      var b = this;
+  $$("#edge-row button[data-estyle], #edge-row button[data-eends], #edge-row button[data-ehead]").forEach(function (b) {
+    b.addEventListener("click", function () {
       pfeilAendern(function (e) {
         if (b.dataset.estyle) e.style = b.dataset.estyle;
         if (b.dataset.eends) e.ends = b.dataset.eends;
         if (b.dataset.ehead) e.head = e.head === "triangle" ? "arrow" : "triangle";
       });
     });
-  }
+  });
   ["edge-from", "edge-to"].forEach(function (id) {
-    var inp = $(id);
-    function commit() {
+    var inp = feldAnbinden(id, function () {
       pfeilAendern(function (e) {
         var v = inp.value.replace(/\s+/g, " ").trim().slice(0, 12);
         if (id === "edge-from") e.fromLabel = v; else e.toLabel = v;
       });
-    }
-    inp.addEventListener("change", commit);
-    inspAbschluss[id] = commit;
-    inp.addEventListener("keydown", function (ev) {
-      ev.stopPropagation();
-      if (ev.key === "Enter") { ev.preventDefault(); commit(); inp.blur(); }
-      else if (ev.key === "Escape") { ev.preventDefault(); render(); inp.blur(); }
-    });
+    }, render);
   });
 
   // Ausrichten / Verteilen / Gleiche Groesse fuer die Mehrfachauswahl (nur Elemente).
@@ -4080,34 +4047,24 @@
     selSet.forEach(function (id) { if (nodes.has(id)) putNode(id); });
     render();
   }
-  var alignKnoepfe = $("align-row").querySelectorAll("button[data-align]");
-  for (var ak = 0; ak < alignKnoepfe.length; ak++) {
-    alignKnoepfe[ak].addEventListener("click", function () { ausrichten(this.dataset.align); });
-  }
+  $$("#align-row button[data-align]").forEach(function (b) {
+    b.addEventListener("click", function () { ausrichten(b.dataset.align); });
+  });
 
   // Verweis + Status je Element (C5).
-  var linkField = $("node-link");
+  var linkField = feldAnbinden("node-link", commitLink, render);
   function commitLink() {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n) return;
+    var n = gewaehlterKnoten(); if (!n) return;
     var v = linkField.value.trim().slice(0, 300);
     if ((n.link || "") === v) return;
     n.link = v; putNode(sel.id); render();
   }
-  linkField.addEventListener("change", commitLink);
-  linkField.addEventListener("keydown", function (ev) {
-    ev.stopPropagation();
-    if (ev.key === "Enter") { ev.preventDefault(); commitLink(); linkField.blur(); }
-    else if (ev.key === "Escape") { ev.preventDefault(); render(); linkField.blur(); }
-  });
-  var statusKnoepfe = $("meta-row").querySelectorAll("button[data-status]");
-  for (var sk = 0; sk < statusKnoepfe.length; sk++) {
-    statusKnoepfe[sk].addEventListener("click", function () {
-      if (!sel || sel.type !== "node") return;
-      var n = nodes.get(sel.id); if (!n) return;
-      n.status = statusLesen(this.dataset.status); putNode(sel.id); render();
+  $$("#meta-row button[data-status]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var n = gewaehlterKnoten(); if (!n) return;
+      n.status = statusLesen(b.dataset.status); putNode(sel.id); render();
     });
-  }
+  });
 
   // Einfrieren / Auftauen (C4) — zweistufig, ohne Dialogfenster.
   function frozenAnzeigen() {
@@ -4128,10 +4085,10 @@
     clearTimeout(freezeArmed); freezeArmed = null;
     offenesTippenAbschliessen();
     var neu = !frozen;
-    track.auftauen = true;         // dieser eine Schreibvorgang darf durch die Sperre
+    auftauenLaeuft = true;         // dieser eine Schreibvorgang darf durch die Sperre
     frozen = neu;                  // sofort lokal, damit putBoard den neuen Wert traegt
     putBoard(titleEl.value, neu, boardTheme);
-    track.auftauen = false;
+    auftauenLaeuft = false;
     frozenAnzeigen();
     if (neu) copyOut(JSON.stringify(brettAlsJSON(), null, 2), "Eingefroren — der Stand liegt als Text in der Ablage.");
     else toast("Aufgetaut — das Brett lässt sich wieder ändern.");
@@ -4153,58 +4110,38 @@
     $("sec-aussehen").hidden = !(sichtbar("swatches") || sichtbar("text-row"));
     $("sec-claude").hidden = !(sichtbar("meta-row") || sichtbar("note-row"));
     $("sec-anordnen").hidden = !(sichtbar("btn-front") || sichtbar("btn-hide"));
-    var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
+    var n = gewaehlterKnoten();
     var hat = !!(n && (n.status || n.link || n.note));
     $("sec-claude").querySelector("summary").classList.toggle("hat", hat);
   }
 
-  var edgeField = $("edge-label");
+  var edgeField = feldAnbinden("edge-label", commitEdgeLabel, function () {
+    var e = gewaehlterPfeil();
+    edgeField.value = e ? (e.label || "") : "";
+  });
   function commitEdgeLabel() {
-    if (!sel || sel.type !== "edge") return;
-    var e = edges.get(sel.id); if (!e) return;
+    var e = gewaehlterPfeil(); if (!e) return;
     var v = edgeField.value.replace(/\s+/g, " ").trim();
     if (e.label === v) return;
     e.label = v;
     putEdge(sel.id);
     render();
   }
-  edgeField.addEventListener("change", commitEdgeLabel);
-  edgeField.addEventListener("keydown", function (ev) {
-    ev.stopPropagation();
-    if (ev.key === "Enter") { ev.preventDefault(); commitEdgeLabel(); edgeField.blur(); }
-    else if (ev.key === "Escape") {
-      ev.preventDefault();
-      var e = sel && sel.type === "edge" ? edges.get(sel.id) : null;
-      edgeField.value = e ? (e.label || "") : "";
-      edgeField.blur();
-    }
-  });
 
-  // Notiz-Feld: Schreibpfad wie beim Pfeiltext (change = uebernehmen, Esc = verwerfen).
-  // Kein warteGrund(): ein hereinkommender Stand laesst das Feld in Ruhe, solange es den
-  // Fokus hat (s. renderInspector) — darum braucht es keinen eigenen Warte-Merker.
-  var noteField = $("node-note");
+  // Notiz-Feld: Langtext, darum Strg+Enter. Kein warteGrund(): ein hereinkommender Stand laesst
+  // das Feld in Ruhe, solange es den Fokus hat (wertSetzen) — darum braucht es keinen Warte-Merker.
+  var noteField = feldAnbinden("node-note", commitNote, function () {
+    var n = gewaehlterKnoten();
+    noteField.value = n ? (n.note || "") : "";
+  }, true);
   function commitNote() {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n) return;
+    var n = gewaehlterKnoten(); if (!n) return;
     var v = noteField.value.replace(/\r\n?/g, "\n").trim().slice(0, 4000);
     if ((n.note || "") === v) return;
     n.note = v;
     putNode(sel.id);
     render();
   }
-  noteField.addEventListener("change", commitNote);
-  noteField.addEventListener("keydown", function (ev) {
-    ev.stopPropagation();   // Entf/Buchstaben duerfen nicht als Brett-Kuerzel wirken
-    if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
-      ev.preventDefault(); commitNote(); noteField.blur();
-    } else if (ev.key === "Escape") {
-      ev.preventDefault();
-      var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
-      noteField.value = n ? (n.note || "") : "";
-      noteField.blur();
-    }
-  });
   $("insp-id").addEventListener("click", function () {
     var t = $("insp-id").textContent;
     if (t) copyOut(t, "Kennung kopiert: " + t);
@@ -4225,7 +4162,7 @@
     $("tbl-masse").textContent = cells.length + " × " + cells[0].length;
     if (tblGitter.contains(document.activeElement)) return;
     var tb = tblGitter.tBodies[0];
-    while (tb.firstChild) tb.removeChild(tb.firstChild);
+    leeren(tb);
     cells.forEach(function (row, r) {
       var tr = document.createElement("tr");
       row.forEach(function (val, c) {
@@ -4241,8 +4178,7 @@
     });
   }
   function zelleSetzen(r, c, wert) {
-    if (!sel || sel.type !== "node") return false;
-    var n = nodes.get(sel.id); if (!n || n.kind !== "table") return false;
+    var n = gewaehlterKnoten(); if (!n || n.kind !== "table") return false;
     if (gesperrt()) return false;
     offenesTippenAbschliessen();
     var cells = n.cells || (n.cells = tabelleLeer());
@@ -4270,7 +4206,7 @@
       if (ziel) ziel.focus({ preventScroll: true }); else inp.blur();
     } else if (ev.key === "Escape") {
       ev.preventDefault();
-      var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
+      var n = gewaehlterKnoten();
       inp.value = n && n.cells && n.cells[r] ? (n.cells[r][c] || "") : "";
       inp.blur();
     }
@@ -4282,8 +4218,7 @@
     $(id).addEventListener("keydown", function (ev) { ev.stopPropagation(); });
   });
   $("frame-layout").addEventListener("change", function () {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n || n.kind !== "frame") return;
+    var n = gewaehlterKnoten(); if (!n || n.kind !== "frame") return;
     var l = layoutLesen(this.value);
     n.layout = l;
     if (LAYOUTS[l]) { n.w = LAYOUTS[l][0]; n.h = LAYOUTS[l][1]; }
@@ -4293,8 +4228,7 @@
   // Baustein-Art wechseln: Art, Standardgroesse und — falls noch der Beispieltext der
   // alten Art drinsteht — der Beispieltext der neuen Art.
   $("widget-variant").addEventListener("change", function () {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n || n.kind !== "widget") return;
+    var n = gewaehlterKnoten(); if (!n || n.kind !== "widget") return;
     var alt = variantLesen(n.variant), neu = variantLesen(this.value);
     if (alt === neu) return;
     if (n.text === VARIANTS[alt].text) n.text = VARIANTS[neu].text;
@@ -4304,10 +4238,12 @@
   });
 
   // Felder/Methoden eines Datenmodells: Schreibpfad wie das Tabellen-Textfeld.
-  var entityField = $("entity-text");
+  var entityField = feldAnbinden("entity-text", commitEntity, function () {
+    var n = gewaehlterKnoten();
+    entityField.value = n && hatFelder(n) ? entityText(n) : "";
+  }, true);
   function commitEntity() {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n || !hatFelder(n)) return;
+    var n = gewaehlterKnoten(); if (!n || !hatFelder(n)) return;
     offenesTippenAbschliessen();
     var p = entityParsen(entityField.value);
     if (JSON.stringify(p.fields) === JSON.stringify(n.fields || []) &&
@@ -4317,17 +4253,6 @@
     putNode(sel.id);
     render();
   }
-  entityField.addEventListener("change", commitEntity);
-  entityField.addEventListener("keydown", function (ev) {
-    ev.stopPropagation();
-    if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); commitEntity(); entityField.blur(); }
-    else if (ev.key === "Escape") {
-      ev.preventDefault();
-      var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
-      entityField.value = n && hatFelder(n) ? entityText(n) : "";
-      entityField.blur();
-    }
-  });
 
   // Seit 2.49 fuer eine bestimmte Tabelle (Zellen-Menue per Rechtsklick, Issue #7); die
   // Inspektor-Knoepfe rufen es fuer die Auswahl. Zeilen/Spalten an beliebiger Stelle:
@@ -4372,30 +4297,22 @@
   function tabellenMenueZeigen(ev, id, r, c) {
     tabMenueWeg();
     var n = nodes.get(id); if (!n || n.kind !== "table") return;
-    if (!(sel && sel.type === "node" && sel.id === id)) { sel = { type: "node", id: id }; selSet.clear(); selEdges.clear(); render(); }
-    while (tabMenu.firstChild) tabMenu.removeChild(tabMenu.firstChild);
-    var lab = document.createElement("div"); lab.className = "hinweis";
-    lab.textContent = "Zeile " + (r + 1) + " · Spalte " + (c + 1); tabMenu.appendChild(lab);
-    function knopf(text, fn) {
-      var b = document.createElement("button"); b.type = "button"; b.textContent = text;
-      b.addEventListener("click", function () { tabMenueWeg(); tabelleAendernFuer(id, fn); });
-      tabMenu.appendChild(b);
-    }
+    if (!(sel && sel.type === "node" && sel.id === id)) { waehlen("node", id); render(); }
+    leeren(tabMenu);
+    menueHinweis("Zeile " + (r + 1) + " · Spalte " + (c + 1));
+    function knopf(text, fn) { menueKnopf(text, function () { tabelleAendernFuer(id, fn); }); }
     knopf("Zeile davor einfügen", function (t) { return zeileEinfuegen(t, r); });
     knopf("Zeile danach einfügen", function (t) { return zeileEinfuegen(t, r + 1); });
     knopf("Zeile löschen", function (t) { return zeileLoeschen(t, r); });
-    var tr = document.createElement("div"); tr.className = "trenner"; tabMenu.appendChild(tr);
+    menueTrenner();
     knopf("Spalte davor einfügen", function (t) { return spalteEinfuegen(t, c); });
     knopf("Spalte danach einfügen", function (t) { return spalteEinfuegen(t, c + 1); });
     knopf("Spalte löschen", function (t) { return spalteLoeschen(t, c); });
-    tabMenu.hidden = false;
-    tabMenu.style.left = Math.max(0, Math.min(ev.clientX, window.innerWidth - 220)) + "px";
-    tabMenu.style.top = Math.max(0, Math.min(ev.clientY, window.innerHeight - 260)) + "px";
+    menueOeffnen(ev, 260);
   }
 
   $("btn-back").addEventListener("click", function () {
-    if (!sel || sel.type !== "node") return;
-    var n = nodes.get(sel.id); if (!n) return;
+    var n = gewaehlterKnoten(); if (!n) return;
     n.z = bottomZ() - 1; putNode(sel.id); render();
   });
   /* ================= Duplizieren / Kopieren / Einfuegen (2.13) ================= */
@@ -4406,32 +4323,14 @@
   // der vierte Anlege-Weg (s. catchGesperrt), er darf keine eigene Erzeugung mehr haben.
   var ablage = null;          // { nodes: [{schluessel, daten}], edges: [{von, nach, daten}] }
   var ablageEinfuegungen = 0; // jedes Einfuegen rueckt weiter, damit Kopien nicht stapeln
-  function knotenDaten(n) {
-    var d = {
-      kind: n.kind, x: n.x, y: n.y, w: n.w, h: n.h,
-      text: n.text, color: n.color, z: n.z || 0,
-      fs: n.fs || 0, bold: n.bold || 0, align: n.align || "",
-      note: n.note || "", valign: n.valign || "", link: n.link || "", status: statusLesen(n.status),
-      hidden: n.hidden === true
-    };
-    if (n.kind === "table") { d.cells = zellenKopie(n.cells); tabellenMasse(n, d); }
-    if (n.kind === "frame") d.layout = n.layout || "frei";
-    if (n.kind === "widget") d.variant = n.variant || "button";
-    if (hatFelder(n)) { d.fields = (n.fields || []).slice(); d.methods = (n.methods || []).slice(); d.auto = !!n.auto; }
-    return d;
-  }
   function auswahlPaket() {
-    var ids = [];
-    if (mehrfach()) selSet.forEach(function (id) { if (nodes.has(id)) ids.push(id); });
-    else if (sel && sel.type === "node" && nodes.has(sel.id)) ids = [sel.id];
+    var ids = gewaehlteKnotenIds();
     if (!ids.length) return null;
     var im = {}; ids.forEach(function (id, i) { im[id] = i; });
     var p = { nodes: ids.map(function (id) { return knotenDaten(nodes.get(id)); }), edges: [] };
     edges.forEach(function (e) {
       if (im[e.from] === undefined || im[e.to] === undefined) return;
-      var pf = pfeilFelder(e);
-      p.edges.push({ von: im[e.from], nach: im[e.to], daten: { label: e.label || "",
-        style: pf.style, ends: pf.ends, head: pf.head, fromLabel: pf.fromLabel, toLabel: pf.toLabel } });
+      p.edges.push({ von: im[e.from], nach: im[e.to], daten: pfeilDaten(e) });
     });
     return p;
   }
@@ -4454,13 +4353,10 @@
       putNode(id);
       return id;
     });
-    selSet.clear(); selEdges.clear(); sel = null;
+    nichtsWaehlen();
     p.edges.forEach(function (pe) {
       var id = uid();
-      var e = { from: neu[pe.von], to: neu[pe.nach], sheet: activeSheet };
-      var pf = pfeilFelder(pe.daten);
-      e.label = pe.daten.label || ""; e.style = pf.style; e.ends = pf.ends; e.head = pf.head;
-      e.fromLabel = pf.fromLabel; e.toLabel = pf.toLabel;
+      var e = pfeilDaten(pe.daten, neu[pe.von], neu[pe.nach], activeSheet);
       allEdges.set(id, e); edges.set(id, e);
       putEdge(id);
       selEdges.add(id);
@@ -4472,21 +4368,15 @@
   }
   // Sichtbarkeit umschalten (2.50, Issue #8): der EINE Weg fuer Knopf und Strg+Umschalt+H.
   // Einzel- und Sammel-Auswahl; sind alle gewaehlten schon ausgeblendet, werden sie eingeblendet.
-  function sichtbarkeitsAuswahl() {
-    var ids = [];
-    if (mehrfach()) selSet.forEach(function (id) { if (nodes.has(id)) ids.push(id); });
-    else if (sel && sel.type === "node" && nodes.has(sel.id)) ids = [sel.id];
-    return ids;
-  }
   function sichtbarKnopfSetzen() {
-    var ids = sichtbarkeitsAuswahl();
+    var ids = gewaehlteKnotenIds();
     var alle = ids.length > 0 && ids.every(function (id) { return nodes.get(id).hidden === true; });
     $("btn-hide-txt").textContent = alle ? "Einblenden" : "Ausblenden";
     $("btn-hide").setAttribute("aria-pressed", alle ? "true" : "false");
   }
   function sichtbarkeitUmschalten() {
     if (gesperrt()) return;
-    var ids = sichtbarkeitsAuswahl();
+    var ids = gewaehlteKnotenIds();
     if (!ids.length) return;
     offenesTippenAbschliessen();
     var alle = ids.every(function (id) { return nodes.get(id).hidden === true; });
@@ -4523,12 +4413,13 @@
     document.title = v + " · Pinit";
   });
 
+  var toastTimer = null;
   function toast(msg) {
     var el = $("toast");
     el.textContent = msg;
     el.classList.add("on");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(function () { el.classList.remove("on"); }, 2400);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("on"); }, 2400);
   }
 
   /* ==================== Einstellungen-Dialog (2.14) ==================== */
@@ -4580,7 +4471,7 @@
   ];
   function einstKeysBauen() {
     var tb = $("einst-keys-tabelle");
-    while (tb.firstChild) tb.removeChild(tb.firstChild);
+    leeren(tb);
     KUERZEL.forEach(function (z) {
       var tr = document.createElement("tr");
       if (z[1] === null) {
@@ -4599,7 +4490,7 @@
   }
   function einstInfoBauen() {
     var dl = $("einst-info-liste");
-    while (dl.firstChild) dl.removeChild(dl.firstChild);
+    leeren(dl);
     var reiter = echteReiter().length, waisen = letzteWaisen;
     [["Fassung", FASSUNG + " vom " + FASSUNG_DATUM],
      ["Brett", titleEl.value],
@@ -4613,8 +4504,7 @@
     });
   }
   function einstSeite(name) {
-    var tabs = document.querySelectorAll("#einst-reiter button");
-    for (var i = 0; i < tabs.length; i++) tabs[i].setAttribute("aria-selected", tabs[i].dataset.seite === name ? "true" : "false");
+    $$("#einst-reiter button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.seite === name ? "true" : "false"); });
     ["keys", "look", "info"].forEach(function (s) { $("einst-" + s).hidden = s !== name; });
     if (name === "info") einstInfoBauen();
   }
@@ -4665,44 +4555,38 @@
   einstHinter.addEventListener("mousedown", function (ev) { if (ev.target === einstHinter) einstZeigen(false); });
   // Tasten im Dialog gehoeren dem Dialog (Esc faengt der Fenster-Handler oben ab).
   $("einst").addEventListener("keydown", function (ev) { if (ev.key !== "Escape") ev.stopPropagation(); });
-  var einstTabs = document.querySelectorAll("#einst-reiter button");
-  for (var et = 0; et < einstTabs.length; et++) {
-    einstTabs[et].addEventListener("click", function () { einstSeite(this.dataset.seite); });
-  }
+  $$("#einst-reiter button").forEach(function (b) {
+    b.addEventListener("click", function () { einstSeite(b.dataset.seite); });
+  });
   // Darstellung: im Brett gespeichert (meta/board.theme); ohne Speicher im Browser-Merker.
   // Mausrad-Art (2.27): je Betrachter im Browser-Merker rb.rad.
   // Smart Guides (2.42): je Betrachter, rb.guides = "aus" schaltet ab, alles andere = an.
-  var guidesKnoepfe = document.querySelectorAll("#einst-guides button");
-  function guidesAnzeigen() {
-    for (var i = 0; i < guidesKnoepfe.length; i++) guidesKnoepfe[i].setAttribute("aria-pressed", (guidesKnoepfe[i].dataset.guides === "aus") === !GUIDES ? "true" : "false");
-  }
-  for (var gk = 0; gk < guidesKnoepfe.length; gk++) {
-    guidesKnoepfe[gk].addEventListener("click", function () {
-      GUIDES = this.dataset.guides !== "aus";
+  var guidesKnoepfe = $$("#einst-guides button");
+  function guidesAnzeigen() { druecken(guidesKnoepfe, function (b) { return (b.dataset.guides === "aus") === !GUIDES; }); }
+  guidesKnoepfe.forEach(function (b) {
+    b.addEventListener("click", function () {
+      GUIDES = b.dataset.guides !== "aus";
       store("rb.guides", GUIDES ? "an" : "aus"); guidesAnzeigen();
     });
-  }
+  });
   guidesAnzeigen();
-  var radKnoepfe = document.querySelectorAll("#einst-rad button");
-  function radAnzeigen() {
-    for (var i = 0; i < radKnoepfe.length; i++) radKnoepfe[i].setAttribute("aria-pressed", radKnoepfe[i].dataset.rad === RAD ? "true" : "false");
-  }
-  for (var rk = 0; rk < radKnoepfe.length; rk++) {
-    radKnoepfe[rk].addEventListener("click", function () {
-      RAD = this.dataset.rad === "zoomen" ? "zoomen" : "schieben";
-      store("rb.rad", RAD); radAnzeigen(); einstKeysBauen();
+  var radKnoepfe = $$("#einst-rad button");
+  function radAnzeigen() { druecken(radKnoepfe, function (b) { return b.dataset.rad === RAD; }); }
+  radKnoepfe.forEach(function (b) {
+    b.addEventListener("click", function () {
+      RAD = b.dataset.rad === "zoomen" ? "zoomen" : "schieben";
+      store("rb.rad", RAD); radAnzeigen();
     });
-  }
+  });
   radAnzeigen();
-  var themeKnoepfe = document.querySelectorAll("#einst-theme button");
-  for (var tk = 0; tk < themeKnoepfe.length; tk++) {
-    themeKnoepfe[tk].addEventListener("click", function () {
+  $$("#einst-theme button").forEach(function (b) {
+    b.addEventListener("click", function () {
       if (db && gesperrt()) return;
-      themeAnwenden(this.dataset.theme);
+      themeAnwenden(b.dataset.theme);
       if (db) putBoard(titleEl.value, frozen, boardTheme); else store("rb.theme", boardTheme);
       toast("Darstellung: " + { system: "wie das System", light: "hell", dark: "dunkel" }[boardTheme] + (db ? " — für alle gespeichert." : "."));
     });
-  }
+  });
   if (load("rb.theme")) themeAnwenden(load("rb.theme"));
 
   function copyOut(text, msg) {
@@ -4747,26 +4631,12 @@
       return w === CATCH ? ersterReiter : w;
     }
     allNodes.forEach(function (n, id) {
-      out.nodes[id] = {
-        kind: n.kind, x: n.x, y: n.y, w: n.w, h: n.h,
-        text: n.text, color: n.color, z: n.z, sheet: reiterFuer(n.sheet),
-        fs: n.fs || 0, bold: n.bold || 0, align: n.align || "",
-        note: n.note || "", valign: n.valign || ""
-      };
-      if (n.kind === "table") { out.nodes[id].cells = zellenKopie(n.cells); tabellenMasse(n, out.nodes[id]); }
-      if (n.kind === "frame") out.nodes[id].layout = n.layout || "frei";
-      if (n.kind === "widget") out.nodes[id].variant = n.variant || "button";
-      if (hatFelder(n)) { out.nodes[id].fields = (n.fields || []).slice(); out.nodes[id].methods = (n.methods || []).slice(); if (n.auto) out.nodes[id].auto = true; }
-      out.nodes[id].link = n.link || ""; out.nodes[id].status = statusLesen(n.status);
-      if (n.hidden === true) out.nodes[id].hidden = true;
+      var d = knotenDaten(n, reiterFuer(n.sheet));
+      if (!d.auto) delete d.auto;       // der Export fuehrt die Schalter nur, wenn sie gesetzt sind
+      if (!d.hidden) delete d.hidden;
+      out.nodes[id] = d;
     });
-    allEdges.forEach(function (e, id) {
-      out.edges[id] = {
-        from: e.from, to: e.to, label: e.label || "", sheet: reiterFuer(e.sheet),
-        style: pfeilFelder(e).style, ends: pfeilFelder(e).ends, head: pfeilFelder(e).head,
-        fromLabel: pfeilFelder(e).fromLabel, toLabel: pfeilFelder(e).toLabel
-      };
-    });
+    allEdges.forEach(function (e, id) { out.edges[id] = pfeilDaten(e, e.from, e.to, reiterFuer(e.sheet)); });
 
     return out;
   }
@@ -4838,8 +4708,7 @@
     var weg = sheetName(activeSheet);
     var still = !reiterAbgleichLief;
     reiterAbgleichLief = true;
-    activeSheet = sheetList()[0].id;
-    store("rb.sheet", activeSheet);
+    reiterMerken(sheetList()[0].id);
     sel = null;
     setTool(tool);   // Anlege-Zeiger neu bewerten - er haengt am Reiter
     // Ohne Hinweis sieht der Betrachter nur ein scheinbar leeres Brett: die Kamera stand
@@ -4895,6 +4764,15 @@
     if (w.edges) applyEdges(w.edges);
   }
 
+  // Nach jedem angewendeten Stand dasselbe: gilt der offene Reiter noch, neu filtern, die Auswahl
+  // um Verschwundenes bereinigen (je Sammlung anders), zeichnen, bei Reiterwechsel die Kamera holen.
+  function standAngewendet(auswahlBereinigen) {
+    var gewechselt = pruefeAktivenReiter();
+    refilter();
+    if (auswahlBereinigen) auswahlBereinigen();
+    render();
+    if (gewechselt) restoreView();
+  }
   function applyNodes(snap) {
     if (warteGrund()) { aufbewahren("nodes", snap); return; }
     var next = new Map();
@@ -4914,7 +4792,7 @@
         // nicht nur die Stufen der Knoepfe — nur begrenzt wird er.
         fs: Math.max(0, Math.min(96, Math.round(+v.fs || 0))),
         bold: +v.bold === 2 ? 2 : (v.bold ? 1 : 0),
-        align: v.align === "left" || v.align === "center" || v.align === "right" ? v.align : "",
+        align: alignLesen(v.align),
         note: typeof v.note === "string" ? v.note.slice(0, 4000) : "",
         valign: valignLesen(v.valign),
         cells: v.kind === "table" ? zellenLesen(v.cells) : undefined,
@@ -4935,12 +4813,10 @@
     // laut Plattform-Vertrag oft `fromCache` und kann leer sein — sie als „geladen“ zu
     // zählen hat den Ladewettlauf nur verschoben, nicht geschlossen.
     if (!snap.metadata.fromCache) geladen.nodes = true;
-    var gewechselt = pruefeAktivenReiter();
-    refilter();
-    if (sel && sel.type === "node" && !nodes.has(sel.id)) sel = null;
-    selSet.forEach(function (id) { if (!nodes.has(id)) selSet.delete(id); });
-    render();
-    if (gewechselt) restoreView();
+    standAngewendet(function () {
+      if (sel && sel.type === "node" && !nodes.has(sel.id)) sel = null;
+      selSet.forEach(function (id) { if (!nodes.has(id)) selSet.delete(id); });
+    });
   }
 
   function applyEdges(snap) {
@@ -4949,22 +4825,16 @@
     snap.docs.forEach(function (d) {
       var v = d.data() || {};
       if (!v.from || !v.to) return;
-      var pf = pfeilFelder(v);
-      next.set(d.id, {
-        from: String(v.from), to: String(v.to),
-        label: typeof v.label === "string" ? v.label.slice(0, 200) : "",
-        sheet: typeof v.sheet === "string" && v.sheet ? v.sheet : HOME,
-        style: pf.style, ends: pf.ends, head: pf.head, fromLabel: pf.fromLabel, toLabel: pf.toLabel
-      });
+      var e = pfeilDaten(v, String(v.from), String(v.to), typeof v.sheet === "string" && v.sheet ? v.sheet : HOME);
+      e.label = typeof v.label === "string" ? v.label.slice(0, 200) : "";
+      next.set(d.id, e);
     });
     allEdges = next;
     if (!snap.metadata.fromCache) geladen.edges = true;
-    var gewechselt = pruefeAktivenReiter();
-    refilter();
-    if (sel && sel.type === "edge" && !edges.has(sel.id)) sel = null;
-    selEdges.forEach(function (id) { if (!edges.has(id)) selEdges.delete(id); });
-    render();
-    if (gewechselt) restoreView();
+    standAngewendet(function () {
+      if (sel && sel.type === "edge" && !edges.has(sel.id)) sel = null;
+      selEdges.forEach(function (id) { if (!edges.has(id)) selEdges.delete(id); });
+    });
   }
 
   function applySheets(snap) {
@@ -4981,10 +4851,7 @@
       });
     });
     sheets = next;
-    var gewechselt = pruefeAktivenReiter();
-    refilter();
-    render();
-    if (gewechselt) restoreView();
+    standAngewendet(null);
   }
 
   $("fassung").textContent = "smartvillage · v" + FASSUNG;

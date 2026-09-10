@@ -81,7 +81,7 @@ die HTML ist das lieferbare Artefakt und muss ohne Werkzeug weitergegeben werden
 
 Abschnitte in `pinit.html`, in der Reihenfolge der Datei (vollständig — wer hier etwas
 ergänzt, hält die Liste mit):
-1. `<style>`: Farbtoken für Hell/Dunkel, Kopfzeile, Reiterleiste, Knoten, Pfeile, Inspektor.
+1. `<style>`: Farbtoken für Hell/Dunkel (die Dunkel-Palette steht bewusst zweimal — Media-Query und Attribut lassen sich nicht in einer Regel verbinden, Kommentar im CSS), seit 3.00 **eine** globale `[hidden]`-Regel, Kopfzeile, Reiterleiste, Knoten, Pfeile, Inspektor.
 2. Markup: Kopfzeile mit Fassung und Werkzeugleiste · Reiterleiste `#tabs` · Zeichenfläche
    `#canvas`/`#layer` · Inspektor — seit 2.10 in **vier klappbaren Abschnitten** (`<details class="insp-sec">`,
    Zustand je Betrachter unter `rb.sec.<id>`, leere Abschnitte versteckt `sektionenAufraeumen()`; seit 2.33 nie höher als die Fläche (2.34: 12 px Luft über der Zoomleiste), scrollt innen, Breite am Griff `#insp-griff` an der linken Kante ziehbar — nach links = breiter, seit 2.41 bis 60 % der Fläche — und in `rb.insp.w` gemerkt):
@@ -90,7 +90,99 @@ ergänzt, hält die Liste mit):
    `#sec-aussehen` (Farben, Textknöpfe in einer Reihe) · `#sec-claude` „Für Claude“ (Status, Verweis,
    **Notiz `#note-row`**; Punkt am Titel, wenn etwas gesetzt ist; zu per Vorgabe) · `#sec-anordnen`
    (vorn/hinten/duplizieren; zu per Vorgabe) · Löschen immer unten · Koordinaten · Statuszeile · Zoomleiste · Hinweis · Toast.
-3. Modell: `FASSUNG`/`FASSUNG_DATUM`, `KINDS` (Vorgaben je Bauart, **inkl. `fs`/`bold`/
+3. Modell: `FASSUNG`/`FASSUNG_DATUM`, direkt danach seit 3.00 die **Kleinen Helfer** (`# Pinit
+
+<!-- Projekt-„Verfassung" — immer geladen, schlank halten.
+     Feste, entschiedene Invarianten stehen HIER (nicht in REGELN.md).
+     Richtung/Status: @PLAN.md · später per /projekt-regel ergänzte Regeln: @REGELN.md -->
+@PLAN.md
+@REGELN.md
+
+## Was ist das?
+Whiteboard als Claude-Artifact für Prozess-Visualisierung und Mockups. Wird als HTML-Datei verteilt; jeder veröffentlicht daraus sein eigenes Brett mit eigenem Speicher.
+
+- **Typ / Stack:** **Code** (Migration — Fassung 1.0 lief vor dem Anlegen) · Eine einzelne HTML-Datei, reines JS/CSS ohne Fremdbibliothek; Claude Artifact mit db-Capability.
+- **Code-Herkunft:** lokal  <!-- lokal = code/ im Wiki mitversioniert · extern = eigener Git-Repo mit Remote, vom Wiki ignoriert (via code-extern-einrichten.js; s. Root-CLAUDE.md „Git ist lokal") -->
+- **Kontext:** Ersatz für Microsoft Whiteboard (keine API) und Figma (dessen MCP — Model
+  Context Protocol, die Schnittstelle, über die Claude ein Fremdwerkzeug bedient — ist im
+  Free-Tarif nach wenigen Aufrufen aufgebraucht). Fassung 1.0 ist veröffentlicht und im
+  Einsatz.
+
+**Zwei Begriffe, die durchgehend vorkommen:** `capabilities` sind die Fähigkeiten, die eine
+Artifact-Seite beim Veröffentlichen **deklariert** und die ihr die Laufzeit dann gewährt —
+hier genau eine, `db`: eine kleine JSON-Dokument-Datenbank, die zu diesem einen Artifact
+gehört, Änderungen in Echtzeit an alle offenen Betrachter verteilt und ein Republish der
+Seite übersteht. Ohne die Deklaration (oder ohne Artifact-Laufzeit, z. B. Datei direkt im
+Browser) liefert `claude.use("db")` `null` — dann läuft die Seite im **Modus ohne Speicher**
+(im Code noch `vorlageModus()` genannt, Abzeichen „Vorlage“): ausprobieren ja, speichern nein.
+
+## Die Veröffentlichungen (Artifact-URLs)
+Ein Artifact kann nur das Konto aktualisieren, das es veröffentlicht hat — Luis hat zwei
+(Arbeit und privat). Vollständige Liste mit Konto-Vermerk:
+`~/.claude/skills/pinit-veroeffentlichen/bretter.json`.
+
+| | URL | Konto | `capabilities` |
+|---|---|---|---|
+| **Pinit · Allgemein Dashboard** (privat, projektübergreifend, seit 2.12) | `https://claude.ai/code/artifact/f0313815-8831-4ec5-8613-9e28915e7051` | privat | `{db: {}}` |
+| **Pinit** (erstes Brett, Arbeits-Konto — steht NICHT in der privaten `bretter.json`; auf der Arbeit eigene Liste anlegen) | `https://claude.ai/code/artifact/cf961f04-6f2e-41d2-9d5a-eb3a1f8b1a04` | Arbeit | `{db: {}}` |
+
+**Seit 2.11 gibt es keine „Vorlage“ mehr.** Die frühere zweite Veröffentlichung
+„Reißbrett Vorlage“ (`b059cf88-e25b-4460-a703-6a8abf4dd1f5`, `capabilities {}`) wird **nicht
+mehr gepflegt** und bleibt auf 2.10 stehen; die Kopie `reissbrett-vorlage.html` und der
+Erzeuger `vorlage-erzeugen.js` sind gelöscht. *(Entschieden 2026-09-07 von Luis: eine Datei,
+ein Artifact — einfacher zu entwickeln, und wer die Datei hat, veröffentlicht ohnehin selbst.)*
+
+**Veröffentlichen läuft über den globalen Skill `pinit-veroeffentlichen`**
+(`~/.claude/skills/pinit-veroeffentlichen/`, Liste aller Bretter in `bretter.json` daneben).
+Ohne Angabe aktualisiert er **alle** Bretter, mit Name/URL eins, mit „neu <Name>“ legt er ein
+Brett für ein anderes Projekt an (eigener Galerie-Name über eine Wegwerf-Kopie mit anderem
+`<title>`, eigene Datenbank; URL landet in dessen `CLAUDE.md`). Regeln, die dahinterstehen:
+die URL muss als `url` mitgegeben werden (sonst entsteht ein neues, leeres Artifact),
+`capabilities` weglassen (die gespeicherte `{db:{}}` bleibt), `label` = Fassung, und
+`pinit.html` wird für keinen Namen umgeschrieben — nur die Kopie.
+
+**Zugriff von überall:** das Artifact hängt an Luis' Konto, nicht an diesem Ordner. Jede
+Claude-Code-Sitzung in jedem Projekt kann mit der URL per `read_db`/`write_db` an die Daten —
+darum liegen die Skills `pinit-lesen`/`pinit-schreiben` im Benutzer-Ordner.
+
+**Wie die Datei verteilt wird (seit 2.20):** öffentliches GitHub-Repo
+`https://github.com/luishindelang/pinit`, Download der aktuellen Fassung unter
+`https://raw.githubusercontent.com/luishindelang/pinit/main/code/pinit.html`. Nach jeder Fassung
+„commit und push“. Die Skills liegen als Kopie in `skills/` (nach `~/.claude/skills/` kopieren);
+`bretter.json` mit den eigenen Brett-URLs bleibt bewusst außerhalb des Repos. Ein Auto-Update der
+Bretter gibt es weiterhin nicht (s. `PLAN.md`, Roter Faden) — die Fassungsnummer in der Kopfzeile
+zeigt, wer hinterherhängt.
+
+**Wie ein Empfänger sein Brett aktualisiert** (es gibt kein Auto-Update — s. Invarianten):
+er bekommt die neue `pinit.html`, vergleicht die Fassung in seiner Kopfzeile mit der
+in der Datei und sagt seinem Claude: *„aktualisier mein Pinit mit dieser Datei, gleiche
+URL, capabilities nicht anfassen."* **Sein Inhalt bleibt** — die Zeichnungen liegen in der
+Datenbank des Artifacts, nicht in der Seite, und die übersteht ein Republish. Wer neu
+anfängt, lässt die Datei einfach mit `capabilities {db:{}}` veröffentlichen.
+
+## Was liegt wo (Code-Landkarte)
+`code/` trägt zwei Dateien. Es gibt bewusst **keinen Build und keine Fremdbibliothek** —
+die HTML ist das lieferbare Artefakt und muss ohne Werkzeug weitergegeben werden können.
+
+- **`code/pinit.html`** — die **eine maßgebliche Quelle**. Selbsttragende Seite:
+  Farbtoken (Hell/Dunkel) · Kopfzeile mit Fassungsnummer · Reiter-Leiste · Zeichenfläche
+  (Verschieben/Zoomen) · Knoten (`box`, `sticky`, `diamond`, `text`) · Pfeile · Inspektor ·
+  Speicher-Anschluss über `claude.use("db")`. Zugleich die Datei, die an Kollegen geht.
+- **`code/undeklariert-pruefen.js`** — Prüfschritt 3: findet Zuweisungen an nie deklarierte
+  Namen (Laufzeitfehler unter `"use strict"`, die `node --check` durchlässt).
+
+Abschnitte in `pinit.html`, in der Reihenfolge der Datei (vollständig — wer hier etwas
+ergänzt, hält die Liste mit):
+1. `<style>`: Farbtoken für Hell/Dunkel (die Dunkel-Palette steht bewusst zweimal — Media-Query und Attribut lassen sich nicht in einer Regel verbinden, Kommentar im CSS), seit 3.00 **eine** globale `[hidden]`-Regel, Kopfzeile, Reiterleiste, Knoten, Pfeile, Inspektor.
+2. Markup: Kopfzeile mit Fassung und Werkzeugleiste · Reiterleiste `#tabs` · Zeichenfläche
+   `#canvas`/`#layer` · Inspektor — seit 2.10 in **vier klappbaren Abschnitten** (`<details class="insp-sec">`,
+   Zustand je Betrachter unter `rb.sec.<id>`, leere Abschnitte versteckt `sektionenAufraeumen()`; seit 2.33 nie höher als die Fläche (2.34: 12 px Luft über der Zoomleiste), scrollt innen, Breite am Griff `#insp-griff` an der linken Kante ziehbar — nach links = breiter, seit 2.41 bis 60 % der Fläche — und in `rb.insp.w` gemerkt):
+   Kopf mit Bauart + **Kennung `#insp-id`** · `#sec-bauart` „Einstellungen“ (Baustein-Art und Layout als
+   **Auswahllisten** `#widget-variant`/`#frame-layout`, Tabelle, Felder, Pfeil-Art, Ausrichten) ·
+   `#sec-aussehen` (Farben, Textknöpfe in einer Reihe) · `#sec-claude` „Für Claude“ (Status, Verweis,
+   **Notiz `#note-row`**; Punkt am Titel, wenn etwas gesetzt ist; zu per Vorgabe) · `#sec-anordnen`
+   (vorn/hinten/duplizieren; zu per Vorgabe) · Löschen immer unten · Koordinaten · Statuszeile · Zoomleiste · Hinweis · Toast.
+/`$`, `svgEl`, `leeren`, `naechst`, `knotenEl`, `druecken` für aria-pressed-Gruppen, `store`/`load`/`vergessen`), `KINDS` (Vorgaben je Bauart, **inkl. `fs`/`bold`/
    `align`**, seit 2.3 auch `table`), `GRADE` + **`schriftgrad`/`fett`/`ausricht`/`gradStufe`** ·
    **`TBL_MAX_*`/`tabelleLeer`/`zellenKopie`/`zellenLesen`** (Zellen-Helfer, seit 2.3) (die drei Lesehelfer
    sind die EINE Stelle, an der "0 bzw. leer heißt Vorgabe" steht — `renderNodes` und die
@@ -99,22 +191,22 @@ ergänzt, hält die Liste mit):
    `editing`, `wartend`, `geladen`, `letzteWaisen`, `reiterAbgleichLief`; **`selSet`** seit 2.0
    direkt nach `sel` — die Mehrfachauswahl, nur vom Auswahl-Rahmen gefüllt; **`selEdges`** seit 2.2
    daneben für Pfeile, mit `mehrfach()` als der EINEN Frage „Sammel-Modus?“ — wer die
-   Mehrfachauswahl leert, leert **beide** Mengen, das steht an zehn Stellen), `uid`,
-   `topZ`/`bottomZ`. **`syncTot` steht nicht hier**, sondern bei „Speichern“ (Abschnitt 5)
+   Mehrfachauswahl leert, leert **beide** Mengen; seit 3.00 nur noch über die **Auswahl-Helfer** direkt dahinter: `auswahlLeeren()`, `nichtsWaehlen()`, `waehlen(typ, id)`, `gewaehlterKnoten()`/`gewaehlterPfeil()`, `gewaehlteKnotenIds()`), `uid`,
+   `Z_BASIS`/`ebeneZ()`, `topZ`/`bottomZ`. **`syncTot` steht nicht hier**, sondern bei „Speichern“ (Abschnitt 5)
    neben `syncGestorben` — dort, wo er gesetzt wird.
 4. Reiter: `store`/`load` (Browser-Merker je Betrachter) · **`wirkReiter`/`waisenZahl`
    (Waisen-Regel)** · `sheetList`/`echteReiter`/`sheetName` · `refilter` ·
    `tabFeldAktiv`/`endTabRename` · `saveView`/`restoreView` · `switchSheet` ·
-   `materializeHome`/`addSheet`/`renameSheet`/`armDelete`/`deleteSheet` · `renderTabs`.
+   `materializeHome`/`addSheet`/`renameSheet`/`armDelete`/`deleteSheet` · `reiterMerken` · Menü-Helfer `menueKnopf`/`menueTrenner`/`menueHinweis`/`menueOeffnen` (3.00, teilen sich Reiter-Menü `tabMenueZeigen` und Zellen-Menü `tabellenMenueZeigen`) · `renderTabs`.
 5. Speichern: `setStatus`/`counts`/`offText` · **`syncTot`/`syncGestorben`** (ein
    Abonnement ist mit einem Fehler gestorben — die Meldung muss stehenbleiben) ·
    `saved`/`busy` · `track` (Zähler + Statuszeile) ·
-   `putNode`/`putEdge`/`putSheet`/`dropDoc`/`putTitle`.
+   **`knotenDaten(n, sheet)`/`pfeilDaten(e, von, nach, sheet)`** (3.00: der EINE Bauplan der Dokumente — `putNode`/`putEdge` schreiben ihn, die Ablage nimmt ihn ohne Reiter, `brettAlsJSON` mit aufgelöstem Reiter; wer ein Feld ergänzt, ergänzt es hier) · `putNode`/`putEdge`/`putSheet`/`dropDoc`/`putTitle`.
 6. Geometrie: `center` · `border` (Rand-Schnittpunkt, Rechteck und Raute) · `bounds` ·
    `toBoard`.
 7. Ansicht: `applyView`/`zoomAt`/`fit`.
-8. Zeichnen: `fillOf` · `renderNodes` (seit 2.48 misst es alle Tabellen gesammelt: `tabellenGriffeMessen`/`tabellenGriffeSetzen`) · `renderWires` (eine SVG-Ebene je Pfeil; **Pfeilspitzen seit 2.48 als eigene Pfade `kopfPfad()`, keine SVG-Marker** — ein `url(#marker)`-Verweis ließ Chrome bei jedem Pfeil alle anderen neu durchrechnen, Issue #9) ·
-   `renderInspector` · `render`. Davor seit 2.3 **`textFuellen`** (Stichpunkt-Darstellung) und
+8. Zeichnen: `fillOf` · `renderNodes` (seit 3.00 nur noch die Schleife: je Element `knotenBauen()` = `knotenFarben` + `knotenInhalt` (mit `codeRandBauen`, `modellBauen`) + `markenSetzen`, Griffe `griffeBauen`; seit 2.48 misst es alle Tabellen gesammelt: `tabellenGriffeMessen`/`tabellenGriffeSetzen`) · `renderWires` (eine SVG-Ebene je Pfeil; **Pfeilspitzen seit 2.48 als eigene Pfade `kopfPfad()`, keine SVG-Marker** — ein `url(#marker)`-Verweis ließ Chrome bei jedem Pfeil alle anderen neu durchrechnen, Issue #9) ·
+   `renderInspector` (seit 3.00 über `INSP_ZEILEN`/`inspZeilen()`, `INSP_KNOEPFE`/`inspKnoepfe()`, `farbfelderMarkieren()`, `wertSetzen()` — eine Zeile ergänzen heißt: in `INSP_ZEILEN` eintragen) · `render`. Davor seit 2.3 **`textFuellen`** (Stichpunkt-Darstellung) und
    **`tabelleBauen`** (das `<table>` aus `cells`).
 8b. Aufziehen + Textknöpfe (seit 1.5): `vorschauZeigen`/`vorschauWeg` (das gestrichelte
    Rechteck `#neu-vorschau`; es liegt in `#layer` und teilt darum die Brett-Koordinaten —
@@ -132,8 +224,8 @@ ergänzt, hält die Liste mit):
 10. Werkzeuge: `TOOLS`, `setTool`, Farbfelder.
 11. Maus (`mousedown`/`mousemove`/`mouseup`/`dblclick`/`wheel`) und Tastatur. **Die
     `drag`-Modi sind `pan`, `move`, `resize`, `link`, seit 1.5 `create` und seit 2.0 `marquee`**
-    (`move` trägt seit 1.8 `kinder`, s. Bedienung; Helfer `mitnehmer()` steht direkt vor dem
-    Maus-Abschnitt; `marquee` zeichnet `#auswahl-rahmen` über `rahmenZeigen`/`rahmenWeg` neben
+    (`move` trägt seit 1.8 `kinder`, s. Bedienung; Helfer `mitnehmer()`, `knotenUnterMaus()`, `linkZielWeg()`, `nachbarKanten()` stehen direkt vor dem
+    Maus-Abschnitt; der Tabellen-Griff (`tblcol`/`tblrow`) wird seit 3.00 in `tabellenGriffAnfassen()` angefasst; `marquee` zeichnet `#auswahl-rahmen` über `rahmenZeigen`/`rahmenWeg` neben
     der Anlege-Vorschau und füllt beim `mouseup` `selSet` — Berühren reicht; genau ein Treffer
     wird zur Einzelauswahl `sel`). Werkzeug `hand` schiebt in `mousedown` sofort die Ansicht. — bei aktivem
     Anlege-Werkzeug merkt `mousedown` nur den Startpunkt, `mousemove` zeichnet die Vorschau,
@@ -141,7 +233,7 @@ ergänzt, hält die Liste mit):
     Brett-Pixeln in beiden Richtungen) nimmt die Standardgröße. Folge fürs Verhalten:
     solange man aufzieht, ist `drag` gesetzt und Schnappschüsse werden aufbewahrt
     (`warteGrund`) — das war vorher nicht so, weil Anlegen ein Wimpernschlag war.
-12. Knöpfe, in Dateireihenfolge: Textknöpfe (`fs-minus`/`fs-plus`/`t-bold`/`al-left`/
+12. Knöpfe, in Dateireihenfolge — **alle Textfelder des Inspektors hängen seit 3.00 an `feldAnbinden(id, übernehmen, zurücksetzen, strgEnter)`** (change übernimmt, Enter bzw. Strg+Enter übernimmt und verlässt das Feld, Esc stellt zurück; das registriert sie zugleich für `inspektorAbschliessen()`): Textknöpfe (`fs-minus`/`fs-plus`/`t-bold`/`al-left`/
     `al-center`/`al-right`, alle über `textAendern`) · Zoom · Löschen · Nach vorn ·
     Pfeiltext-Feld · **Tabellen-Knöpfe `tbl-row-plus`/`tbl-row-minus`/`tbl-col-plus`/`tbl-col-minus`**
     (seit 2.3, alle über `tabelleAendern`) · **Layout-Knöpfe** `#frame-row button[data-layout]` (2.5) ·
@@ -159,7 +251,7 @@ ergänzt, hält die Liste mit):
     Kennung im Code bleibt).
 13. Datenbank: **`pruefeAktivenReiter`** (gilt der offene Reiter noch?) ·
     **`warteGrund`/`abarbeiten`** (aufbewahrte Stände) ·
-    `applyNodes`/`applyEdges`/`applySheets` · `vorlageModus` · `verbinden` und die
+    `standAngewendet()` (3.00: der gemeinsame Abschluss — Reiter prüfen, filtern, Auswahl bereinigen, zeichnen) · `applyNodes`/`applyEdges`/`applySheets` · `vorlageModus` · `verbinden` und die
     Abonnements.
 
 **Bedienung heute** (der Ist-Stand, damit man ohne Code-Lektüre planen kann). Seit 1.6 hat
@@ -452,8 +544,17 @@ Feature-Kandidat, kein heutiges Verhalten. Textfelder werden beim Einlesen gekap
      werden (Exit ≠ 0); `undeklariert-pruefen.js` mit einer entfernten Deklaration → muss
      **einen Fund** melden.
 
+  10. **Fingerabdruck-Vergleich (seit 3.00, bei Umbauten OHNE gewollte Verhaltensänderung).**
+     `node code/pruefung/mk-test.js` baut `code/_t.html` (Wegwerf, in .gitignore) mit Schein-Datenbank
+     und festem Ablauf; über einen lokalen Server öffnen (file:// hat keine Zwischenablage), in der
+     Konsole `await __szenario("vorher")` VOR dem Umbau, `await __szenario("nachher")` danach — die
+     Rückgabe nennt jeden Unterschied in DOM, Inspektor, CSS-Werten (hell und dunkel), Schreibvorgängen
+     und Export-Texten. Leer = nichts hat sich geändert. Wer eine innere Funktion umbenennt, zieht den
+     Haken in `mk-test.js` nach. Kopf von `mk-test.js` erklärt die Schritte.
+
   **Ausführungs-Nachweise** (das Protokoll je Fassung) stehen in
   `artefakte/NACHWEISE-2026-09-07.md` — dort **fortschreiben**, hier steht nur der jüngste:
+  - **Fassung 3.00, 2026-09-10 (Aufräumung ohne Verhaltensänderung):** derselbe Funktionsumfang wie 2.51, aber weniger Doppeltes: **ein** Bauplan für Datenbank-Dokumente (`knotenDaten(n, sheet)`/`pfeilDaten(e, von, nach, sheet)` — vorher stand er dreimal, in `putNode`, der Ablage und `brettAlsJSON`); **ein** Anbinder für alle Inspektor-Textfelder (`feldAnbinden()`, registriert sie zugleich für `inspektorAbschliessen()`, vorher sieben Kopien des change/Enter/Esc-Musters); `renderInspector` über Zeilen-Tabellen (`INSP_ZEILEN`/`inspZeilen()`, `INSP_KNOEPFE`/`inspKnoepfe()`, `wertSetzen()`) statt 30 Einzelzeilen je Zweig; `renderNodes` in Bausteine (`knotenBauen` = `knotenFarben` + `knotenInhalt` mit `codeRandBauen`/`modellBauen` + `markenSetzen`, Griffe `griffeBauen`); Auswahl-Helfer (`auswahlLeeren`/`nichtsWaehlen`/`waehlen`/`gewaehlterKnoten`/`gewaehlterPfeil`/`gewaehlteKnotenIds` — die „beide Mengen leeren“-Regel steht damit an EINER Stelle statt an zehn); kleine Helfer (`$`, `svgEl`, `leeren`, `naechst`, `knotenEl`, `druecken`, `vergessen`); `TASTE` aus `TOOLS` abgeleitet statt zweiter Liste; Menü-Helfer für Reiter- und Zellen-Menü; `standAngewendet()` als gemeinsamer Abschluss der drei apply-Funktionen; `tabellenGriffAnfassen()` aus dem mousedown herausgelöst; `nachbarKanten()` für die Hilfslinien; Ebenen über `Z_BASIS`/`ebeneZ()`. CSS: **eine** globale `[hidden]`-Regel (ersetzt acht Einzelregeln; die Artifact-Hülle setzt dieselbe — damit verhält sich die Datei lokal wie veröffentlicht: der Knopf „Eigenes Brett anlegen“ und die Senkrecht-Knöpfe sind lokal jetzt wirklich unsichtbar, wenn `hidden`), ein Grundstil für Inspektor-Felder, Ring-Regeln als `:is()`-Liste, Code-Farben und Status-Farben als Token; die doppelte Dunkel-Palette bleibt bewusst (Kommentar im CSS erklärt warum). 5064 → 4931 Zeilen. Schritte 2, 3, 4, 9 grün. **Schritt 5 als Fingerabdruck-Vergleich** (neues Prüf-Geschirr `code/pruefung/`, s. Test-Konvention Schritt 10): 74 Aufnahmen über alle Bauarten, Pfeil-Arten, Inspektor-Knöpfe, Maus (Verschieben mit Mitnehmen, Größe, Rahmen, Pfeil ziehen, Aufziehen, Schieben, Rad), Tastatur, Reiter/Gruppen/Menüs, fremde Stände, Export, Einfrieren, Einstellungen, hell und dunkel; 148 Datenbank-Schreibvorgänge — nach jedem der vier Umbau-Schritte **0 Unterschiede** zu 2.51, am Ende nur der Fassungstext und die `[hidden]`-Folge (36 CSS-Werte, alle an Kopfzeile/Inspektor-Höhe, keine Farbe, kein Rand, keine Schrift). Schritte 6 und 7 stehen aus.
   - **Fassung 2.51, 2026-09-10 (Tabelle: „Als Text“ weg):** das Inhalts-Textfeld aus 2.4 (`tbl-text`, `zellenAlsText`/`textAlsZellen`/`commitTblText`) ist entfernt — Gitter im Inspektor und Doppelklick in die Zelle reichen (Luis, 2026-09-10). Mit weg: der Zweig in `inspektorAbschliessen()` und die CSS-Regeln `.tbl-text-details`. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: Tabelle gewählt → kein `#tbl-text` im DOM, Gitter 3×2 da, „+ Zeile“ und Zellen-Menü weiter in Ordnung. Schritte 6 und 7 stehen aus.
   - **Fassung 2.50, 2026-09-10 (Sichtbarkeit, Issue #8):** neues optionales Feld `hidden` (boolean, im Brett — alle Betrachter und Claude sehen es). Ausgeblendet = blasser, gestrichelter Umriss ohne Inhalt (`.node.versteckt`, opacity .3, Kinder `visibility: hidden`; Raute behält ihren Umriss), weiter wählbar und verschiebbar, Doppelklick zum Tippen wird mit Hinweis abgelehnt. Alles, was ganz in einem ausgeblendeten Element und davor liegt (Mitnehmen-Regel, `mitnehmer()`), wird gar nicht gezeichnet und vom Auswahl-Rahmen nicht gewählt; Pfeile an einem ausgeblendeten oder darin liegenden Element werden nicht gezeichnet (`verstecktMengen()` liefert `umriss`/`weg`, gefragt in `renderNodes`, `renderWires`, Auswahl-Rahmen). Umschalten: Knopf „Ausblenden/Einblenden“ (`#btn-hide`, Abschnitt Anordnen, auch im Sammel-Modus) und Strg+Umschalt+H — ein Schreibweg `sichtbarkeitUmschalten()`; sind alle gewählten schon ausgeblendet, werden sie eingeblendet. `putNode`, `knotenDaten` (Kopieren/Duplizieren nimmt es mit), `applyNodes`, `brettAlsJSON` führen das Feld. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis: Rahmen F mit A und B darin, C/T/D außerhalb, fünf Pfeile → F ausblenden: DOM „F* C T D“, Pfeile nur e4/e5 (C→T, T→D); F opacity .3, Rand dashed, Text hidden; Knopf „Einblenden“; Strg+Umschalt+H → alles zurück; Sammel A+C → „A* B C*“, Pfeile e2/e5; Raute D → gestrichelter Umriss. Bildschirmfoto geprüft. Schritte 6 und 7 stehen aus.
   - **Fassung 2.49, 2026-09-10 (Tabelle: Zeile/Spalte an der Zelle, Issue #7):** Rechtsklick auf eine Zelle öffnet ein Menü (`tabellenMenueZeigen()`, nutzt `#tab-menu` als Hülle): Zeile davor/danach einfügen, Zeile löschen, Spalte davor/danach einfügen, Spalte löschen — an der geklickten Zelle; die Tabelle wird dabei gewählt. Die vier Inspektor-Knöpfe und das Menü laufen über dieselben Helfer `zeileEinfuegen/zeileLoeschen/spalteEinfuegen/spalteLoeschen(n, at)` (Knöpfe = am Ende) und `tabelleAendernFuer(id, fn)`; `colW`/`rowH` werden mitgeführt (neue Zeile/Spalte nimmt das Maß der davor). Kein Menü beim Tippen in der Tabelle; eingefroren nur der Hinweis. Schritte 2, 3, 4 grün. Schritt 5 per Ereignis (Tabelle 3×3, colW 60/80/120, rowH 30/40/50): Rechtsklick Zeile 2/Spalte 2 → 6 Knöpfe, Tabelle gewählt; „Zeile danach einfügen“ → leere Zeile an Index 2, rowH 30/40/50/50; „Spalte davor einfügen“ an Spalte 1 → Kopf „,A,B,C“, colW 60/60/80/120; „Zeile löschen“ Zeile 1 → Kopf weg; „Spalte löschen“ Spalte 3 → 12 Zellen, colW 60/60/120; „− Zeile“ im Inspektor weiter in Ordnung. Schritte 6 und 7 stehen aus.

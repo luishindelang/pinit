@@ -91,6 +91,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 3.00 | 2026-09-10 | Aufräumung ohne Verhaltensänderung: ein Bauplan für Datenbank-Dokumente, ein Anbinder für Inspektor-Felder, Auswahl-Helfer, `renderNodes`/`renderInspector` in Bausteine, eine `[hidden]`-Regel, Token für Code-/Status-Farben; Prüf-Geschirr `code/pruefung/` (Fingerabdruck-Vergleich, 74 Aufnahmen, 0 Unterschiede zu 2.51) |
 | 2.51 | 2026-09-10 | Tabelle: Inhalts-Textfeld „Als Text“ im Inspektor entfernt (Gitter und Doppelklick reichen) |
 | 2.50 | 2026-09-10 | Sichtbarkeit (Issue #8): Feld `hidden` — Element als blasser Umriss, Pfeile und alles darin unsichtbar; Knopf im Inspektor und Strg+Umschalt+H |
 | 2.49 | 2026-09-10 | Tabelle (Issue #7): Rechtsklick auf eine Zelle — Zeile/Spalte davor oder danach einfügen, Zeile/Spalte löschen |
