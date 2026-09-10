@@ -137,8 +137,6 @@
   /* Die Seite darf nie waagerecht scrollen — ein focus() in ein Feld hatte den body verschoben. */
   html, body { overflow: hidden; max-width: 100%; }
   #app { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; overflow: hidden; }
-  #wires marker.tri path { stroke: var(--edge); stroke-width: 1; fill: var(--surface); }
-  #wires marker.tri.sel path { stroke: var(--accent); }
   .tgrp button.klein { padding: 5px 0; font-size: 11px; }
   .tgrp input {
     flex: 1 1 0; min-width: 0;
@@ -352,9 +350,6 @@
     border: 1px solid var(--accent); background: rgba(31, 95, 168, .08);
   }
   #layer { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
-  /* Nur Träger der Pfeilspitzen-Definitionen, zeichnet selbst nichts. */
-  #wires { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; pointer-events: none; }
-  #wires marker path { stroke: none; }
   /* Jeder Pfeil bekommt seine eigene Ebene, damit er per z-index auf die
      Höhe der Kästen rutschen kann, die er verbindet. */
   .wire-svg { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
@@ -363,6 +358,13 @@
   .wire-svg path.line { fill: none; stroke: var(--edge); stroke-width: 1.6; }
   .wire-svg g.wire.sel path.line { stroke: var(--accent); stroke-width: 2.4; }
   .wire-svg g.wire.nah path.line { stroke: var(--accent); stroke-width: 2.6; }
+  /* Pfeilspitzen sind seit 2.48 eigene Pfade je Pfeil (kopfPfad in renderWires), keine SVG-Marker
+     mehr: ein url(#marker)-Verweis liess Chrome bei jedem neuen Pfeil ALLE anderen Verweise neu
+     durchrechnen — mit 173 Pfeilen 186 ms je Neuzeichnen (Issue #9). */
+  .wire-svg path.kopf { fill: var(--edge); stroke: none; }
+  .wire-svg path.kopf.tri { fill: var(--surface); stroke: var(--edge); stroke-width: 1.2; stroke-linejoin: round; }
+  .wire-svg g.wire.sel path.kopf, .wire-svg g.wire.nah path.kopf { fill: var(--accent); }
+  .wire-svg g.wire.sel path.kopf.tri, .wire-svg g.wire.nah path.kopf.tri { fill: var(--surface); stroke: var(--accent); }
   .wire-svg text.elabel {
     font: 500 11px "IBM Plex Sans", sans-serif; fill: var(--ink-2);
     text-anchor: middle; dominant-baseline: middle; paint-order: stroke;
@@ -378,6 +380,10 @@
     text-align: center; overflow: hidden;
     cursor: grab; user-select: none;
     box-shadow: var(--shadow-sm);
+    /* 2.48 (Issue #9): Mal-Eingrenzung — der Browser darf das Gemalte je Element zwischenspeichern.
+       Schieben der Flaeche mit ~1000 sichtbaren Elementen: 43 ms -> 17 ms je Bild. Schneidet nichts
+       ab, was overflow: hidden nicht schon abschneidet; der eigene Schatten/Ring bleibt. */
+    contain: paint;
   }
   .node .txt { max-height: 100%; overflow: hidden; overflow-wrap: anywhere; white-space: pre-wrap; }
   .node.editing { cursor: text; }
@@ -982,23 +988,6 @@
   <div id="stage">
     <div id="canvas">
       <div id="layer">
-        <svg id="wires" width="1" height="1" aria-hidden="true">
-          <defs>
-            <marker id="mk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0.6 L10,5 L0,9.4 z" fill="var(--edge)"/>
-            </marker>
-            <marker id="mk-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0.6 L10,5 L0,9.4 z" fill="var(--accent)"/>
-            </marker>
-            <marker id="mk-tri" class="tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
-              <path d="M0.8,0.8 L11.2,6 L0.8,11.2 z"/>
-            </marker>
-            <marker id="mk-tri-sel" class="tri sel" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
-              <path d="M0.8,0.8 L11.2,6 L0.8,11.2 z"/>
-            </marker>
-          </defs>
-
-        </svg>
       </div>
     </div>
 
@@ -1196,8 +1185,8 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.47";
-  var FASSUNG_DATUM = "2026-09-09";
+  var FASSUNG = "2.48";
+  var FASSUNG_DATUM = "2026-09-10";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
   // align "" ausdruecklich "nimm die Vorgabe" — nur eine Abweichung wird gespeichert.
@@ -1528,7 +1517,6 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var stage = $("stage"), canvas = $("canvas"), layer = $("layer");
-  var wires = $("wires");
 
   function uid() {
     return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
@@ -2440,7 +2428,7 @@
     var old = layer.querySelectorAll(".node, .grips");
     for (var i = 0; i < old.length; i++) old[i].remove();
 
-    var list = [];
+    var list = [], tabellen = [];
     nodes.forEach(function (n, id) { list.push([id, n]); });
     list.sort(function (a, b) { return (a[1].z || 0) - (b[1].z || 0); });
 
@@ -2610,8 +2598,13 @@
       if (n.link) el.title = (el.title ? el.title + "\n" : "") + "\u2197 " + n.link;
 
       layer.appendChild(el);
-      if (n.kind === "table") tabellenGriffeLegen(el, n);
+      if (n.kind === "table") tabellen.push([el, n]);
     });
+    // Tabellen-Griffe gesammelt (2.48): erst ALLE Tabellen messen, dann ALLE Griffe setzen. Ein
+    // Lesen nach einem Schreiben zwingt den Browser zu einem neuen Layout — vorher passierte das
+    // je Tabelle einmal, mit 21 Tabellen auf einem vollen Brett rund 150 ms je Klick (Issue #9).
+    var messungen = tabellen.map(function (t) { return tabellenGriffeMessen(t[0], t[1]); });
+    messungen.forEach(tabellenGriffeSetzen);
   }
 
   function renderWires() {
@@ -2632,6 +2625,20 @@
       return svg;
     }
 
+    // Pfeilspitze als Pfad (2.48, ersetzt die SVG-Marker): Spitze bei p in Richtung (ux,uy),
+    // Masse wie die alten Marker (7 bzw. 10 Marker-Einheiten mal Strichstaerke sw).
+    function kopfPfad(p, ux, uy, sw, tri) {
+      var L = (tri ? 8.67 : 7) * sw, hw = (tri ? 4.33 : 3.08) * sw, ueber = (tri ? 0.17 : 0.7) * sw;
+      var tx = p.x + ux * ueber, ty = p.y + uy * ueber;
+      var bx = tx - ux * L, by = ty - uy * L;
+      return "M" + tx + "," + ty + " L" + (bx - uy * hw) + "," + (by + ux * hw) + " L" + (bx + uy * hw) + "," + (by - ux * hw) + " z";
+    }
+    function kopf(g, p, ux, uy, sw, tri) {
+      var k = document.createElementNS(NS, "path");
+      k.setAttribute("class", "kopf" + (tri ? " tri" : ""));
+      k.setAttribute("d", kopfPfad(p, ux, uy, sw, tri));
+      g.appendChild(k);
+    }
     var nah = nachbarschaft();
     edges.forEach(function (e, id) {
       var a = nodes.get(e.from), b = nodes.get(e.to);
@@ -2660,13 +2667,14 @@
       var pf = pfeilFelder(e);
       if (pf.style === "dashed") line.setAttribute("stroke-dasharray", "7 5");
       else if (pf.style === "dotted") line.setAttribute("stroke-dasharray", "2 4");
-      var mk = pf.head === "triangle" ? (istSel || istNah ? "mk-tri-sel" : "mk-tri") : (istSel || istNah ? "mk-sel" : "mk");
-      if (pf.ends !== "none") line.setAttribute("marker-end", "url(#" + mk + ")");
-      if (pf.ends === "both") line.setAttribute("marker-start", "url(#" + mk + ")");
       g.appendChild(line);
 
-      // Endbeschriftungen (Kardinalitaeten): 16 px vom Rand entlang der Linie, leicht seitlich.
       var len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      var sw = istNah ? 2.6 : (istSel ? 2.4 : 1.6), tri = pf.head === "triangle";
+      if (pf.ends !== "none") kopf(g, p2, ux, uy, sw, tri);
+      if (pf.ends === "both") kopf(g, p1, -ux, -uy, sw, tri);
+
+      // Endbeschriftungen (Kardinalitaeten): 16 px vom Rand entlang der Linie, leicht seitlich.
       function endText(p, richtung, txt) {
         var tt = document.createElementNS(NS, "text");
         tt.setAttribute("class", "elabel");
@@ -2702,8 +2710,10 @@
         pv.setAttribute("class", "line");
         pv.setAttribute("d", "M" + q.x + "," + q.y + " L" + drag.cur.x + "," + drag.cur.y);
         pv.setAttribute("stroke-dasharray", "5 4");
-        pv.setAttribute("marker-end", "url(#mk)");
-        sheet(topZ() + 1).appendChild(pv);
+        var vs = sheet(topZ() + 1);
+        vs.appendChild(pv);
+        var vl = Math.hypot(dx2, dy2) || 1;
+        kopf(vs, drag.cur, dx2 / vl, dy2 / vl, 1.6, false);
       }
     }
   }
@@ -3430,29 +3440,40 @@
   // Griffe an die gemessenen Zellkanten legen (2.36): Spalten-Griff i an der rechten Kante von
   // Spalte i ueber die ganze Tabellenhoehe, Zeilen-Griff i an der unteren Kante von Zeile i ueber
   // die ganze Breite. Masse in Brett-Pixeln (Rechteck durch view.k).
-  function tabellenGriffeLegen(el, n) {
-    var wrap = el.querySelector(".tbl-wrap"); if (!wrap) return;
+  // Seit 2.48 in zwei Haelften: MESSEN (nur lesen) und SETZEN (nur schreiben), damit renderNodes
+  // alle Tabellen eines Bretts erst messen und dann setzen kann — ein Layout statt eins je Tabelle.
+  function tabellenGriffeMessen(el, n) {
+    var wrap = el.querySelector(".tbl-wrap"); if (!wrap) return null;
     var wr = wrap.getBoundingClientRect(), k = view.k || 1;
+    var m = { letzte: null, cg: [], rg: [] };
     // Letzte Zeile = Rest der Huelle (nur bei festen Zeilen); gemessen, weil eine feste Zeile
     // durch ihren Inhalt hoeher sein kann als ihr Mass.
     var cells = n && (n.cells || tabelleLeer());
     if (n && masseGueltig(n.rowH, cells.length)) {
       var trs = wrap.querySelectorAll("tr"), belegt = 0;
       for (var t = 0; t < trs.length - 1; t++) belegt += trs[t].getBoundingClientRect().height / k;
-      if (trs.length) trs[trs.length - 1].style.height = Math.max(TBL_MIN_MASS, Math.round(wr.height / k - belegt)) + "px";
+      if (trs.length) m.letzte = { tr: trs[trs.length - 1], h: Math.max(TBL_MIN_MASS, Math.round(wr.height / k - belegt)) };
     }
     var cg = wrap.querySelectorAll(".tbl-cgrip"), rg = wrap.querySelectorAll(".tbl-rgrip");
     for (var i = 0; i < cg.length; i++) {
       var td = wrap.querySelector('td[data-r="0"][data-c="' + cg[i].dataset.idx + '"]'); if (!td) continue;
       var r = td.getBoundingClientRect();
-      cg[i].style.left = Math.round((r.right - wr.left) / k - 3) + "px";
+      m.cg.push({ el: cg[i], left: Math.round((r.right - wr.left) / k - 3) });
     }
     for (var j = 0; j < rg.length; j++) {
       var td2 = wrap.querySelector('td[data-c="0"][data-r="' + rg[j].dataset.idx + '"]'); if (!td2) continue;
       var r2 = td2.getBoundingClientRect();
-      rg[j].style.top = Math.round((r2.bottom - wr.top) / k - 3) + "px";
+      m.rg.push({ el: rg[j], top: Math.round((r2.bottom - wr.top) / k - 3) });
     }
+    return m;
   }
+  function tabellenGriffeSetzen(m) {
+    if (!m) return;
+    if (m.letzte) m.letzte.tr.style.height = m.letzte.h + "px";
+    m.cg.forEach(function (c) { c.el.style.left = c.left + "px"; });
+    m.rg.forEach(function (r) { r.el.style.top = r.top + "px"; });
+  }
+  function tabellenGriffeLegen(el, n) { tabellenGriffeSetzen(tabellenGriffeMessen(el, n)); }
   /* ============================ Maus ============================ */
   canvas.addEventListener("mousedown", function (ev) {
     if (ev.button === 1) { startPan(ev); return; }
