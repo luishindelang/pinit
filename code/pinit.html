@@ -735,8 +735,6 @@
   }
   #tbl-grid tr:first-child input { font-weight: 600; background: rgba(127,127,127,.12); }
   #tbl-grid input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
-  .tbl-text-details summary { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); cursor: pointer; }
-  .tbl-text-details textarea { margin-top: 5px; }
   .insp-field label {
     font-family: "IBM Plex Mono", monospace; font-size: 9.5px;
     letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
@@ -1054,10 +1052,6 @@
             <button id="tbl-col-minus" class="klein" title="Letzte Spalte entfernen">− Spalte</button>
           </div>
           <div class="tbl-masse">Rechtsklick auf eine Zelle: Zeile/Spalte davor oder danach einfügen, löschen</div>
-          <details class="tbl-text-details">
-            <summary>Als Text (Spalten mit |)</summary>
-            <textarea id="tbl-text" placeholder="Spalte 1 | Spalte 2&#10;Wert | Wert" spellcheck="false"></textarea>
-          </details>
         </div>
         <div class="insp-field" id="entity-row" hidden>
           <label for="entity-text">Felder — eine je Zeile · Leerzeile, dann Methoden</label>
@@ -1195,7 +1189,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "2.50";
+  var FASSUNG = "2.51";
   var FASSUNG_DATUM = "2026-09-10";
 
   // fs/bold/align sind die VORGABEN der Bauart. Am Element bedeutet fs 0 / bold 0 /
@@ -2814,11 +2808,7 @@
       groesseFelderSetzen(n);
       $("btn-auto").style.display = hatFelder(n) ? "" : "none";
       $("btn-auto").setAttribute("aria-pressed", n.auto ? "true" : "false");
-      if (n.kind === "table") {
-        var tf = $("tbl-text");
-        if (document.activeElement !== tf) tf.value = zellenAlsText(n.cells);
-        tblGitterBauen(n);
-      }
+      if (n.kind === "table") tblGitterBauen(n);
       textFelderSetzen(n);
       // Wie beim Pfeiltext: waehrend getippt wird, den Wert NICHT ueberschreiben —
       // sonst wirft ein hereinkommender Stand den halben Satz weg.
@@ -4013,7 +4003,6 @@
     if (id === "node-note") commitNote();
     else if (id === "node-link") commitLink();
     else if (id === "entity-text") commitEntity();
-    else if (id === "tbl-text") commitTblText();
     else if (id === "edge-label") commitEdgeLabel();
     else if (id === "sz-x" || id === "sz-y" || id === "sz-w" || id === "sz-h") groesseAusFeldern();
     else if (inspAbschluss[id]) inspAbschluss[id]();
@@ -4224,36 +4213,8 @@
   // Tabelle: Zeilen/Spalten anhaengen oder die letzte entfernen. Wirkt nur auf eine
   // einzeln gewaehlte Tabelle; Inhalte der entfernten Zeile/Spalte gehen verloren
   // (bewusst ohne Nachfrage — es ist nur der Rand, und Duplizieren sichert vorher).
-  // Der Tabellen-Inhalt als Text: eine Zeile je Zeile, Spalten mit " | ". Der bequeme Weg,
-  // eine Tabelle zu fuellen, ohne jede Zelle einzeln anzuklicken.
-  function zellenAlsText(cells) {
-    return (cells || tabelleLeer()).map(function (r) { return r.join(" | "); }).join("\n");
-  }
-  function textAlsZellen(s) {
-    var zeilen = s.replace(/\r\n?/g, "\n").split("\n");
-    while (zeilen.length && !zeilen[zeilen.length - 1].trim()) zeilen.pop();
-    if (!zeilen.length) return tabelleLeer();
-    var rows = zeilen.slice(0, TBL_MAX_ZEILEN).map(function (z) {
-      return z.split("|").map(function (c) { return c.trim().slice(0, TBL_MAX_ZELLE); });
-    });
-    var cols = Math.max(1, Math.min(TBL_MAX_SPALTEN, Math.max.apply(null, rows.map(function (r) { return r.length; }))));
-    return rows.map(function (r) {
-      r = r.slice(0, cols);
-      while (r.length < cols) r.push("");
-      return r;
-    });
-  }
-  var tblText = $("tbl-text");
-  function commitTblText() {
-    if (!sel || sel.type !== "node") return;
-    offenesTippenAbschliessen();   // sonst schriebe eine offene Zelle ihren alten Wert in die neuen Zellen
-    var n = nodes.get(sel.id); if (!n || n.kind !== "table") return;
-    var neu = textAlsZellen(tblText.value);
-    if (JSON.stringify(neu) === JSON.stringify(n.cells || tabelleLeer())) return;
-    n.cells = neu;
-    putNode(sel.id);
-    render();
-  }
+  // (Das Inhalts-Textfeld "Als Text" aus 2.4 — zellenAlsText/textAlsZellen/commitTblText — ist seit
+  // 2.51 weg: Gitter im Inspektor und Doppelklick in die Zelle reichen, so Luis am 2026-09-10.)
   // Tabellen-Gitter im Inspektor (2.16): ein Eingabefeld je Zelle. Wird nur neu gebaut, wenn
   // gerade KEIN Feld darin den Fokus hat — sonst wuerde ein hereinkommender Stand den halben
   // Satz wegwerfen (dieselbe Regel wie bei Notiz und Pfeiltext). Aendert sich waehrenddessen
@@ -4312,17 +4273,6 @@
       var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
       inp.value = n && n.cells && n.cells[r] ? (n.cells[r][c] || "") : "";
       inp.blur();
-    }
-  });
-  tblText.addEventListener("change", commitTblText);
-  tblText.addEventListener("keydown", function (ev) {
-    ev.stopPropagation();
-    if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); commitTblText(); tblText.blur(); }
-    else if (ev.key === "Escape") {
-      ev.preventDefault();
-      var n = sel && sel.type === "node" ? nodes.get(sel.id) : null;
-      tblText.value = n && n.kind === "table" ? zellenAlsText(n.cells) : "";
-      tblText.blur();
     }
   });
 
