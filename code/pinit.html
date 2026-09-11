@@ -1160,7 +1160,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "3.01";
+  var FASSUNG = "3.02";
   var FASSUNG_DATUM = "2026-09-11";
 
   /* ============================ Kleine Helfer ============================ */
@@ -1253,6 +1253,12 @@
   var LAYOUTS = { frei: null, desktop: [960, 600], tablet: [600, 800], handy: [360, 640] };
   function layoutLesen(v) { return Object.prototype.hasOwnProperty.call(LAYOUTS, v) ? v : "frei"; }
   function ohneText(n) { return n.kind === "start" || n.kind === "end"; }
+  // Mindestmass je Bauart (3.02): Kreise 24 x 24, alles andere 48 x 30. Die EINE Stelle — Anlegen,
+  // Einlesen und die Groessen-Felder fragen sie. Vorher kappte applyNodes jeden Kreis auf 48 x 30
+  // und machte aus einem klein gezogenen Kreis eine liegende Ellipse (Luis, 2026-09-11).
+  var MIN_W = 48, MIN_H = 30, MIN_KREIS = 24;
+  function minBreite(n) { return ohneText(n) ? MIN_KREIS : MIN_W; }
+  function minHoehe(n) { return ohneText(n) ? MIN_KREIS : MIN_H; }
   // UI-Bausteine: Art -> Standardgroesse und Beispieltext. Die Art ist die Bedeutung, die
   // Claude beim Lesen braucht ("das ist ein Knopf"), das Aussehen nur Andeutung.
   var VARIANTS = {
@@ -2885,9 +2891,10 @@
     if (gesperrt()) return null;
     if (catchGesperrt()) return null;
     var d = KINDS[kind], id = uid();
-    var nw = w ? Math.max(48, Math.round(w)) : d.w;
-    var nh = h ? Math.max(30, Math.round(h)) : d.h;
-    if (w) { nw = Math.max(48, snap(nw)); nh = Math.max(30, snap(nh)); }
+    var mw = minBreite({ kind: kind }), mh = minHoehe({ kind: kind });
+    var nw = w ? Math.max(mw, Math.round(w)) : d.w;
+    var nh = h ? Math.max(mh, Math.round(h)) : d.h;
+    if (w) { nw = Math.max(mw, snap(nw)); nh = Math.max(mh, snap(nh)); }
     if (w && ohneText({ kind: kind })) nh = nw;   // Kreise bleiben Kreise, auch nach Mindestmass und Raster
     var n = {
       kind: kind, x: snap(bx - nw / 2), y: snap(by - nh / 2),   // Ecke oben links rastet (2.40)
@@ -3250,7 +3257,7 @@
     if (hatN) h = d.h0 - dy;
     if (ohneText(m)) {
       var s = (hatE || hatW) && (hatS || hatN) ? Math.max(w, h) : ((hatE || hatW) ? w : h);
-      s = Math.max(24, snap(s));
+      s = Math.max(MIN_KREIS, snap(s));
       w = h = s;
       if (hatW) x = d.x0 + d.w0 - w;
       if (hatN) y = d.y0 + d.h0 - h;
@@ -3321,8 +3328,8 @@
     if (gesperrt()) { groesseFelderSetzen(n); return; }
     var x = +$("sz-x").value, y = +$("sz-y").value, w = +$("sz-w").value, h = +$("sz-h").value;
     if (!isFinite(x) || !isFinite(y) || !isFinite(w) || !isFinite(h)) { groesseFelderSetzen(n); return; }
-    if (ohneText(n)) { w = h = Math.max(24, Math.round(w !== n.w ? w : h)); }
-    else { w = Math.max(48, Math.round(w)); h = Math.max(30, Math.round(h)); }
+    if (ohneText(n)) { w = h = Math.max(MIN_KREIS, Math.round(w !== n.w ? w : h)); }
+    else { w = Math.max(MIN_W, Math.round(w)); h = Math.max(MIN_H, Math.round(h)); }
     x = Math.round(x - w / 2); y = Math.round(y - h / 2);   // Feld = Mitte -> Ecke
     if (x === n.x && y === n.y && w === n.w && h === n.h) { groesseFelderSetzen(n); return; }
     if (n.auto && (w !== n.w || h !== n.h)) n.auto = false;
@@ -4790,8 +4797,8 @@
       next.set(d.id, {
         kind: v.kind,
         x: +v.x || 0, y: +v.y || 0,
-        w: Math.max(48, +v.w || KINDS[v.kind].w),
-        h: Math.max(30, +v.h || KINDS[v.kind].h),
+        w: Math.max(minBreite(v), +v.w || KINDS[v.kind].w),
+        h: Math.max(minHoehe(v), +v.h || KINDS[v.kind].h),
         text: typeof v.text === "string" ? v.text.slice(0, 2000) : "",
         color: COLORS.indexOf(v.color) >= 0 ? v.color : KINDS[v.kind].color,
         z: +v.z || 0,
