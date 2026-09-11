@@ -878,7 +878,7 @@
 
 <div id="app">
   <header>
-    <div class="brand">Pinit<small id="fassung">smartvillage</small></div>
+    <div class="brand">Pinit<small id="fassung"></small></div>
     <span id="mode-badge" class="badge" hidden>Vorlage</span>
     <span id="frozen-badge" class="badge frozen" hidden title="Dieses Brett ist eingefroren: niemand ändert etwas, auch Claude nicht. Oben rechts auftauen.">Eingefroren</span>
     <input id="title" value="Unbenanntes Brett" aria-label="Name des Bretts" spellcheck="false">
@@ -1160,7 +1160,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "3.03";
+  var FASSUNG = "3.04";
   var FASSUNG_DATUM = "2026-09-11";
 
   /* ============================ Kleine Helfer ============================ */
@@ -4940,7 +4940,7 @@
     standAngewendet(null);
   }
 
-  $("fassung").textContent = "smartvillage · v" + FASSUNG;
+  $("fassung").textContent = "v" + FASSUNG;
   $("fassung").title = "Pinit Fassung " + FASSUNG + " vom " + FASSUNG_DATUM;
   $("status").title = "Pinit Fassung " + FASSUNG + " vom " + FASSUNG_DATUM;
 
