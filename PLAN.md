@@ -51,11 +51,9 @@ Akzeptanzkriterium, nicht erst in die Rückschau:
   (`points`) plus einen eigenen Zeichen-Zweig; Pfeile sollen daran vermutlich gar nicht
   andocken. Das Datenmodell dafür **vor** dem Zuschnitt klären, nicht danach.
 - ~~Mehrfachauswahl~~ **seit 2.0–2.2 vollständig** (Auswahl-Rahmen, Umschalt+Klick, Pfeile).
-- **Kein Rückgängig.** **Prämisse (→ N7):** ein naives Mehrbenutzer-Undo rollt fremde,
-  zwischenzeitlich eingetroffene Änderungen kommentarlos zurück. Korrekt ist es nur mit
-  Operationshistorie, die dieses Projekt bewusst nicht hat. Falls es kommt, gehört ins
-  Akzeptanzkriterium: nur die eigene letzte Aktion, und nur wenn danach niemand geschrieben
-  hat — sonst ablehnen.
+- ~~Kein Rückgängig~~ **seit 3.03 da** — genau nach der Prämisse N7: eigene Schritte, und nur,
+  wenn niemand das Dokument seither geändert hat; sonst wird abgelehnt. Kein Operations-Protokoll,
+  sondern gemerkte Dokument-Stände je Schreibvorgang.
 - **Live-Zeiger anderer Betrachter.** Bräuchte die `room`-Fähigkeit — das ist die
   Artifact-Fähigkeit für einen **ephemeren** Kanal an alle, die die Seite *gerade jetzt*
   offen haben; nichts davon wird gespeichert. **Prämisse (→ N8):** Zeigerpositionen gehören
@@ -91,6 +89,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 3.03 | 2026-09-11 | Rückgängig / Wiederholen (Strg+Z / Strg+Y): eigene Schritte dieser Sitzung als Dokument-Stände, abgelehnt bei fremder Änderung (N7); `dokSchreiben()` als der eine Weg in die Datenbank |
 | 3.02 | 2026-09-11 | Start/Ende: klein gezogene Kreise blieben nicht rund (`applyNodes` kappte auf 48 × 30); Mindestmaß je Bauart an einer Stelle |
 | 3.01 | 2026-09-11 | Raster-Schrittweite liegt im Brett (`meta/board.raster`) statt nur im Browser; `pinit-schreiben` liest sie und rastet neue Elemente darauf ein |
 | 3.00 | 2026-09-10 | Aufräumung ohne Verhaltensänderung: ein Bauplan für Datenbank-Dokumente, ein Anbinder für Inspektor-Felder, Auswahl-Helfer, `renderNodes`/`renderInspector` in Bausteine, eine `[hidden]`-Regel, Token für Code-/Status-Farben; Prüf-Geschirr `code/pruefung/` (Fingerabdruck-Vergleich, 74 Aufnahmen, 0 Unterschiede zu 2.51) |
@@ -193,7 +192,7 @@ richtig zu bauen? Reihenfolge = Pakete, so abgestimmt.
 ### To-do — später
 - [ ] Bild einfügen (Screenshots). **Prämisse:** Dokumentgröße der Datenbank erst messen;
   eine `assets`-Fähigkeit steht dieser Umgebung nicht zur Verfügung.
-- [ ] Rückgängig (→ N7, nur eigene letzte Aktion).
+- [x] Rückgängig (3.03; → N7: eigene Schritte, abgelehnt bei fremder Änderung).
 - [ ] Unsortiert aufräumen (→ E1, Preis).
 - [ ] Freihand-Zeichnen (Datenmodell vorher klären, s. oben).
 - [x] Smart Guides beim Verschieben (2.42, abschaltbar).

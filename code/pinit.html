@@ -1160,7 +1160,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "3.02";
+  var FASSUNG = "3.03";
   var FASSUNG_DATUM = "2026-09-11";
 
   /* ============================ Kleine Helfer ============================ */
@@ -2186,17 +2186,82 @@
   }
   function putNode(id) {
     var n = nodes.get(id); if (!n || !db) return;
-    track(db.doc("nodes/" + id).set(knotenDaten(n, n.sheet || HOME)));
+    dokSchreiben("nodes/" + id, knotenDaten(n, n.sheet || HOME));
   }
   function putEdge(id) {
     var e = edges.get(id); if (!e || !db) return;
-    track(db.doc("edges/" + id).set(pfeilDaten(e, e.from, e.to, e.sheet || HOME)));
+    dokSchreiben("edges/" + id, pfeilDaten(e, e.from, e.to, e.sheet || HOME));
   }
   function putSheet(id) {
     var s = sheets.get(id); if (!s || !db) return;
-    track(db.doc("sheets/" + id).set({ name: s.name, order: s.order, type: s.type || "", group: s.group || "" }));
+    dokSchreiben("sheets/" + id, { name: s.name, order: s.order, type: s.type || "", group: s.group || "" });
   }
-  function dropDoc(coll, id) { if (db) track(db.doc(coll + "/" + id).delete()); }
+  function dropDoc(coll, id) { if (db) dokSchreiben(coll + "/" + id, null); }
+  // Der EINE Weg in die Datenbank (3.03): setzt oder loescht (daten null) ein Dokument, merkt sich
+  // den geschriebenen Stand und traegt den Schritt ins Rueckgaengig-Gedaechtnis ein.
+  function dokSchreiben(pfad, daten) {
+    if (!db) return;
+    if (frozen && !auftauenLaeuft) return;   // track() schriebe nichts — dann auch nichts merken
+    var vorher = letzterStand.has(pfad) ? letzterStand.get(pfad) : null;
+    if (!verlaufStumm && pfad.indexOf("meta/") !== 0) verlaufMerken(pfad, vorher, daten);
+    if (daten === null) letzterStand.delete(pfad); else letzterStand.set(pfad, daten);
+    track(daten === null ? db.doc(pfad).delete() : db.doc(pfad).set(daten));
+  }
+  /* ---- Rueckgaengig / Wiederholen (3.03, Strg+Z / Strg+Y) ----
+     Kein Operations-Protokoll, sondern Dokument-Staende: jeder eigene Schreibvorgang merkt sich
+     „vorher“ und „nachher“ des Dokuments; alle Schreibvorgaenge EINES Ereignis-Durchlaufs (ein
+     Mausloslassen, ein Einfuegen, ein Loeschen mit allen Pfeilen) bilden EINEN Schritt (setTimeout 0).
+     Rueckgaengig schreibt „vorher“ zurueck — aber nur, wenn das Dokument heute noch genau „nachher“
+     ist. Hat jemand anderes es inzwischen geaendert, wird der Schritt abgelehnt und verworfen
+     (Plan-Praemisse N7: nie fremde Arbeit stumm zuruecksetzen). Nur diese Sitzung, nur mit Speicher,
+     meta/board (Titel, Einfrieren, Darstellung, Raster) bleibt aussen vor. */
+  var VERLAUF_MAX = 100;
+  var verlauf = [], wiederholen = [];     // Schritte: [{ pfad, vorher, nachher }], null = Dokument fehlt
+  var offenerSchritt = null, verlaufStumm = false;
+  var letzterStand = new Map();           // pfad -> zuletzt bekannte Daten (aus Stand oder eigenem Schreiben)
+  function stabil(v) {
+    if (v === null || v === undefined) return "null";
+    if (typeof v !== "object") return JSON.stringify(v);
+    if (Array.isArray(v)) return "[" + v.map(stabil).join(",") + "]";
+    return "{" + Object.keys(v).sort().filter(function (k) { return v[k] !== undefined; })
+      .map(function (k) { return JSON.stringify(k) + ":" + stabil(v[k]); }).join(",") + "}";
+  }
+  function verlaufMerken(pfad, vorher, nachher) {
+    if (stabil(vorher) === stabil(nachher)) return;
+    if (!offenerSchritt) {
+      offenerSchritt = [];
+      setTimeout(function () {
+        var schritt = offenerSchritt; offenerSchritt = null;
+        if (!schritt.length) return;
+        verlauf.push(schritt); if (verlauf.length > VERLAUF_MAX) verlauf.shift();
+        wiederholen = [];
+      }, 0);
+    }
+    for (var i = 0; i < offenerSchritt.length; i++) if (offenerSchritt[i].pfad === pfad) { offenerSchritt[i].nachher = nachher; return; }
+    offenerSchritt.push({ pfad: pfad, vorher: vorher, nachher: nachher });
+  }
+  // Ein Stand aus der Datenbank ersetzt das Gedaechtnis der ganzen Sammlung (geloeschte fallen weg).
+  function standMerken(coll, snap) {
+    letzterStand.forEach(function (_, p) { if (p.indexOf(coll + "/") === 0) letzterStand.delete(p); });
+    snap.docs.forEach(function (d) { letzterStand.set(coll + "/" + d.id, d.data() || {}); });
+  }
+  function rueckgaengig(zurueck) {
+    if (!db) { toast("Ohne Speicher gibt es kein Rückgängig."); return; }
+    if (gesperrt()) return;
+    var quelle = zurueck ? verlauf : wiederholen, ziel = zurueck ? wiederholen : verlauf;
+    if (!quelle.length) { toast(zurueck ? "Nichts zum Rückgängigmachen." : "Nichts zum Wiederholen."); return; }
+    var schritt = quelle.pop(), fremd = 0;
+    schritt.forEach(function (e) {
+      var jetzt = letzterStand.has(e.pfad) ? letzterStand.get(e.pfad) : null;
+      if (stabil(jetzt) !== stabil(zurueck ? e.nachher : e.vorher)) fremd++;
+    });
+    if (fremd) { toast((zurueck ? "Rückgängig" : "Wiederholen") + " nicht möglich: " + fremd + (fremd === 1 ? " Dokument wurde" : " Dokumente wurden") + " inzwischen von jemand anderem geändert."); return; }
+    inspektorAbschliessen();
+    verlaufStumm = true;
+    schritt.forEach(function (e) { dokSchreiben(e.pfad, zurueck ? e.vorher : e.nachher); });
+    verlaufStumm = false;
+    ziel.push(schritt);
+  }
   // meta/board traegt title UND frozen — set() ersetzt das ganze Dokument, also immer beide.
   // Seit 2.14 auch `theme` (system|light|dark). set() ersetzt das Dokument: IMMER alle drei.
   // Seit 3.01 auch `raster` (Schrittweite, 0 = frei). set() ersetzt das Dokument: IMMER alle vier.
@@ -3926,6 +3991,8 @@
     if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
       var kk = ev.key.toLowerCase();
       if (kk === "d") { ev.preventDefault(); duplizieren(); return; }
+      if (kk === "z") { ev.preventDefault(); rueckgaengig(!ev.shiftKey); return; }   // 3.03; Strg+Umschalt+Z = Wiederholen
+      if (kk === "y") { ev.preventDefault(); rueckgaengig(false); return; }
       if (kk === "h" && ev.shiftKey) { ev.preventDefault(); sichtbarkeitUmschalten(); return; }   // 2.50
       if (kk === "c" && (sel || selSet.size)) { ev.preventDefault(); kopieren(); return; }
       if (kk === "v") { ev.preventDefault(); einfuegenAusAblage(); return; }
@@ -4462,6 +4529,7 @@
     ["Esc", "Beschriftung verwerfen · Auswahl aufheben · Feld schließen"],
     ["Entf / Rücktaste", "Auswahl löschen (Elemente und Pfeile)"],
     ["Strg+D", "Auswahl duplizieren (24 px versetzt)"],
+    ["Strg+Z · Strg+Y", "Rückgängig · Wiederholen — eigene Schritte dieser Sitzung (bis 100); abgelehnt, wenn jemand anderes das Element inzwischen geändert hat. Beim Tippen gilt das Rückgängig des Textfelds"],
     ["Strg+Umschalt+H", "Auswahl ausblenden / einblenden: blasser Umriss ohne Inhalt; Pfeile daran und alles darin (z. B. in einem Rahmen) unsichtbar"],
     ["Strg+C · Strg+V", "Auswahl kopieren · einfügen (auch Gruppen mit Pfeilen; interne Ablage)"],
     ["Tab (in Tabelle)", "Zur nächsten Zelle springen"],
@@ -4824,6 +4892,7 @@
       });
     });
     allNodes = next;
+    standMerken("nodes", snap);
     // Erst wenn der Stand server-endgültig ist. Die erste Lieferung einer Anmeldung ist
     // laut Plattform-Vertrag oft `fromCache` und kann leer sein — sie als „geladen“ zu
     // zählen hat den Ladewettlauf nur verschoben, nicht geschlossen.
@@ -4845,6 +4914,7 @@
       next.set(d.id, e);
     });
     allEdges = next;
+    standMerken("edges", snap);
     if (!snap.metadata.fromCache) geladen.edges = true;
     standAngewendet(function () {
       if (sel && sel.type === "edge" && !edges.has(sel.id)) sel = null;
@@ -4866,6 +4936,7 @@
       });
     });
     sheets = next;
+    standMerken("sheets", snap);
     standAngewendet(null);
   }
 
