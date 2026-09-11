@@ -56,7 +56,10 @@ darum liegen die Skills `pinit-lesen`/`pinit-schreiben` im Benutzer-Ordner.
 **Wie die Datei verteilt wird (seit 2.20):** öffentliches GitHub-Repo
 `https://github.com/luishindelang/pinit`, Download der aktuellen Fassung unter
 `https://raw.githubusercontent.com/luishindelang/pinit/main/code/pinit.html`. Nach jeder Fassung
-„commit und push“. Die Skills liegen als Kopie in `skills/` (nach `~/.claude/skills/` kopieren);
+„commit und push“. **Und danach Pflicht: ALLE Bretter aktualisieren** — Skill `pinit-veroeffentlichen`
+ohne Angabe (jeder Eintrag in `bretter.json`, nicht nur das Dashboard). Ein Brett, das nach einem Commit
+auf `main` noch die alte Fassung zeigt, ist ein Fehler, kein Zustand (Luis, 2026-09-11). Grenze: das
+Arbeits-Brett gehört dem Arbeitskonto und lässt sich nur dort aktualisieren. Die Skills liegen als Kopie in `skills/` (nach `~/.claude/skills/` kopieren);
 `bretter.json` mit den eigenen Brett-URLs bleibt bewusst außerhalb des Repos. Ein Auto-Update der
 Bretter gibt es weiterhin nicht (s. `PLAN.md`, Roter Faden) — die Fassungsnummer in der Kopfzeile
 zeigt, wer hinterherhängt.
@@ -90,99 +93,7 @@ ergänzt, hält die Liste mit):
    `#sec-aussehen` (Farben, Textknöpfe in einer Reihe) · `#sec-claude` „Für Claude“ (Status, Verweis,
    **Notiz `#note-row`**; Punkt am Titel, wenn etwas gesetzt ist; zu per Vorgabe) · `#sec-anordnen`
    (vorn/hinten/duplizieren; zu per Vorgabe) · Löschen immer unten · Koordinaten · Statuszeile · Zoomleiste · Hinweis · Toast.
-3. Modell: `FASSUNG`/`FASSUNG_DATUM`, direkt danach seit 3.00 die **Kleinen Helfer** (`# Pinit
-
-<!-- Projekt-„Verfassung" — immer geladen, schlank halten.
-     Feste, entschiedene Invarianten stehen HIER (nicht in REGELN.md).
-     Richtung/Status: @PLAN.md · später per /projekt-regel ergänzte Regeln: @REGELN.md -->
-@PLAN.md
-@REGELN.md
-
-## Was ist das?
-Whiteboard als Claude-Artifact für Prozess-Visualisierung und Mockups. Wird als HTML-Datei verteilt; jeder veröffentlicht daraus sein eigenes Brett mit eigenem Speicher.
-
-- **Typ / Stack:** **Code** (Migration — Fassung 1.0 lief vor dem Anlegen) · Eine einzelne HTML-Datei, reines JS/CSS ohne Fremdbibliothek; Claude Artifact mit db-Capability.
-- **Code-Herkunft:** lokal  <!-- lokal = code/ im Wiki mitversioniert · extern = eigener Git-Repo mit Remote, vom Wiki ignoriert (via code-extern-einrichten.js; s. Root-CLAUDE.md „Git ist lokal") -->
-- **Kontext:** Ersatz für Microsoft Whiteboard (keine API) und Figma (dessen MCP — Model
-  Context Protocol, die Schnittstelle, über die Claude ein Fremdwerkzeug bedient — ist im
-  Free-Tarif nach wenigen Aufrufen aufgebraucht). Fassung 1.0 ist veröffentlicht und im
-  Einsatz.
-
-**Zwei Begriffe, die durchgehend vorkommen:** `capabilities` sind die Fähigkeiten, die eine
-Artifact-Seite beim Veröffentlichen **deklariert** und die ihr die Laufzeit dann gewährt —
-hier genau eine, `db`: eine kleine JSON-Dokument-Datenbank, die zu diesem einen Artifact
-gehört, Änderungen in Echtzeit an alle offenen Betrachter verteilt und ein Republish der
-Seite übersteht. Ohne die Deklaration (oder ohne Artifact-Laufzeit, z. B. Datei direkt im
-Browser) liefert `claude.use("db")` `null` — dann läuft die Seite im **Modus ohne Speicher**
-(im Code noch `vorlageModus()` genannt, Abzeichen „Vorlage“): ausprobieren ja, speichern nein.
-
-## Die Veröffentlichungen (Artifact-URLs)
-Ein Artifact kann nur das Konto aktualisieren, das es veröffentlicht hat — Luis hat zwei
-(Arbeit und privat). Vollständige Liste mit Konto-Vermerk:
-`~/.claude/skills/pinit-veroeffentlichen/bretter.json`.
-
-| | URL | Konto | `capabilities` |
-|---|---|---|---|
-| **Pinit · Allgemein Dashboard** (privat, projektübergreifend, seit 2.12) | `https://claude.ai/code/artifact/f0313815-8831-4ec5-8613-9e28915e7051` | privat | `{db: {}}` |
-| **Pinit** (erstes Brett, Arbeits-Konto — steht NICHT in der privaten `bretter.json`; auf der Arbeit eigene Liste anlegen) | `https://claude.ai/code/artifact/cf961f04-6f2e-41d2-9d5a-eb3a1f8b1a04` | Arbeit | `{db: {}}` |
-
-**Seit 2.11 gibt es keine „Vorlage“ mehr.** Die frühere zweite Veröffentlichung
-„Reißbrett Vorlage“ (`b059cf88-e25b-4460-a703-6a8abf4dd1f5`, `capabilities {}`) wird **nicht
-mehr gepflegt** und bleibt auf 2.10 stehen; die Kopie `reissbrett-vorlage.html` und der
-Erzeuger `vorlage-erzeugen.js` sind gelöscht. *(Entschieden 2026-09-07 von Luis: eine Datei,
-ein Artifact — einfacher zu entwickeln, und wer die Datei hat, veröffentlicht ohnehin selbst.)*
-
-**Veröffentlichen läuft über den globalen Skill `pinit-veroeffentlichen`**
-(`~/.claude/skills/pinit-veroeffentlichen/`, Liste aller Bretter in `bretter.json` daneben).
-Ohne Angabe aktualisiert er **alle** Bretter, mit Name/URL eins, mit „neu <Name>“ legt er ein
-Brett für ein anderes Projekt an (eigener Galerie-Name über eine Wegwerf-Kopie mit anderem
-`<title>`, eigene Datenbank; URL landet in dessen `CLAUDE.md`). Regeln, die dahinterstehen:
-die URL muss als `url` mitgegeben werden (sonst entsteht ein neues, leeres Artifact),
-`capabilities` weglassen (die gespeicherte `{db:{}}` bleibt), `label` = Fassung, und
-`pinit.html` wird für keinen Namen umgeschrieben — nur die Kopie.
-
-**Zugriff von überall:** das Artifact hängt an Luis' Konto, nicht an diesem Ordner. Jede
-Claude-Code-Sitzung in jedem Projekt kann mit der URL per `read_db`/`write_db` an die Daten —
-darum liegen die Skills `pinit-lesen`/`pinit-schreiben` im Benutzer-Ordner.
-
-**Wie die Datei verteilt wird (seit 2.20):** öffentliches GitHub-Repo
-`https://github.com/luishindelang/pinit`, Download der aktuellen Fassung unter
-`https://raw.githubusercontent.com/luishindelang/pinit/main/code/pinit.html`. Nach jeder Fassung
-„commit und push“. Die Skills liegen als Kopie in `skills/` (nach `~/.claude/skills/` kopieren);
-`bretter.json` mit den eigenen Brett-URLs bleibt bewusst außerhalb des Repos. Ein Auto-Update der
-Bretter gibt es weiterhin nicht (s. `PLAN.md`, Roter Faden) — die Fassungsnummer in der Kopfzeile
-zeigt, wer hinterherhängt.
-
-**Wie ein Empfänger sein Brett aktualisiert** (es gibt kein Auto-Update — s. Invarianten):
-er bekommt die neue `pinit.html`, vergleicht die Fassung in seiner Kopfzeile mit der
-in der Datei und sagt seinem Claude: *„aktualisier mein Pinit mit dieser Datei, gleiche
-URL, capabilities nicht anfassen."* **Sein Inhalt bleibt** — die Zeichnungen liegen in der
-Datenbank des Artifacts, nicht in der Seite, und die übersteht ein Republish. Wer neu
-anfängt, lässt die Datei einfach mit `capabilities {db:{}}` veröffentlichen.
-
-## Was liegt wo (Code-Landkarte)
-`code/` trägt zwei Dateien. Es gibt bewusst **keinen Build und keine Fremdbibliothek** —
-die HTML ist das lieferbare Artefakt und muss ohne Werkzeug weitergegeben werden können.
-
-- **`code/pinit.html`** — die **eine maßgebliche Quelle**. Selbsttragende Seite:
-  Farbtoken (Hell/Dunkel) · Kopfzeile mit Fassungsnummer · Reiter-Leiste · Zeichenfläche
-  (Verschieben/Zoomen) · Knoten (`box`, `sticky`, `diamond`, `text`) · Pfeile · Inspektor ·
-  Speicher-Anschluss über `claude.use("db")`. Zugleich die Datei, die an Kollegen geht.
-- **`code/undeklariert-pruefen.js`** — Prüfschritt 3: findet Zuweisungen an nie deklarierte
-  Namen (Laufzeitfehler unter `"use strict"`, die `node --check` durchlässt).
-
-Abschnitte in `pinit.html`, in der Reihenfolge der Datei (vollständig — wer hier etwas
-ergänzt, hält die Liste mit):
-1. `<style>`: Farbtoken für Hell/Dunkel (die Dunkel-Palette steht bewusst zweimal — Media-Query und Attribut lassen sich nicht in einer Regel verbinden, Kommentar im CSS), seit 3.00 **eine** globale `[hidden]`-Regel, Kopfzeile, Reiterleiste, Knoten, Pfeile, Inspektor.
-2. Markup: Kopfzeile mit Fassung und Werkzeugleiste · Reiterleiste `#tabs` · Zeichenfläche
-   `#canvas`/`#layer` · Inspektor — seit 2.10 in **vier klappbaren Abschnitten** (`<details class="insp-sec">`,
-   Zustand je Betrachter unter `rb.sec.<id>`, leere Abschnitte versteckt `sektionenAufraeumen()`; seit 2.33 nie höher als die Fläche (2.34: 12 px Luft über der Zoomleiste), scrollt innen, Breite am Griff `#insp-griff` an der linken Kante ziehbar — nach links = breiter, seit 2.41 bis 60 % der Fläche — und in `rb.insp.w` gemerkt):
-   Kopf mit Bauart + **Kennung `#insp-id`** · `#sec-bauart` „Einstellungen“ (Baustein-Art und Layout als
-   **Auswahllisten** `#widget-variant`/`#frame-layout`, Tabelle, Felder, Pfeil-Art, Ausrichten) ·
-   `#sec-aussehen` (Farben, Textknöpfe in einer Reihe) · `#sec-claude` „Für Claude“ (Status, Verweis,
-   **Notiz `#note-row`**; Punkt am Titel, wenn etwas gesetzt ist; zu per Vorgabe) · `#sec-anordnen`
-   (vorn/hinten/duplizieren; zu per Vorgabe) · Löschen immer unten · Koordinaten · Statuszeile · Zoomleiste · Hinweis · Toast.
-/`$`, `svgEl`, `leeren`, `naechst`, `knotenEl`, `druecken` für aria-pressed-Gruppen, `store`/`load`/`vergessen`), `KINDS` (Vorgaben je Bauart, **inkl. `fs`/`bold`/
+3. Modell: `FASSUNG`/`FASSUNG_DATUM`, direkt danach seit 3.00 die **Kleinen Helfer** (`$`/`$$`, `svgEl`, `leeren`, `naechst`, `knotenEl`, `druecken` für aria-pressed-Gruppen, `store`/`load`/`vergessen`), `KINDS` (Vorgaben je Bauart, **inkl. `fs`/`bold`/
    `align`**, seit 2.3 auch `table`), `GRADE` + **`schriftgrad`/`fett`/`ausricht`/`gradStufe`** ·
    **`TBL_MAX_*`/`tabelleLeer`/`zellenKopie`/`zellenLesen`** (Zellen-Helfer, seit 2.3) (die drei Lesehelfer
    sind die EINE Stelle, an der "0 bzw. leer heißt Vorgabe" steht — `renderNodes` und die
