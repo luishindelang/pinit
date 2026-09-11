@@ -343,7 +343,7 @@
     function cmp(a, b, p) {
       if (diffs.length > 80) return;
       if (a === b) return;
-      if (typeof a !== typeof b || a === null || b === null || typeof a !== "object") { diffs.push(p + ": " + JSON.stringify(a).slice(0, 300) + "  =>  " + JSON.stringify(b).slice(0, 300)); return; }
+      if (typeof a !== typeof b || a === null || b === null || typeof a !== "object") { diffs.push(p + ": " + String(JSON.stringify(a)).slice(0, 300) + "  =>  " + String(JSON.stringify(b)).slice(0, 300)); return; }
       if (Array.isArray(a) && a.length !== b.length) { diffs.push(p + ".length " + a.length + " => " + b.length); }
       // CSS-Aufnahmen: je Element nach Pfad benennen und die Eigenschaften sammeln
       if (a.p !== undefined && a.c && b.c) {

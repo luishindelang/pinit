@@ -940,7 +940,7 @@
           </div>
           <p class="hinweis">Wie in Figma: Rad schiebt die Fläche (Touchpad in alle Richtungen), <b>Strg+Rad</b> zoomt, Kneifen auf dem Touchpad zoomt, Umschalt+Rad schiebt waagerecht. „Rad zoomt“ ist für Maus-Nutzer, die ohne Strg zoomen wollen. Gilt nur für dieses Fenster.</p>
           <h3>Raster</h3>
-          <p class="hinweis">An/Aus und Schrittweite stehen unten rechts am Knopf „Raster“ und gelten nur für dieses Fenster. Das Raster greift an den <b>Kanten</b> eines Elements (Ecke oben links beim Verschieben, gezogene Kante beim Größe ziehen).</p>
+          <p class="hinweis">An/Aus und Schrittweite stehen unten rechts am Knopf „Raster“. Die <b>Schrittweite gilt für das Brett</b> (alle Betrachter, und Claude legt neue Elemente darauf), An/Aus nur für dieses Fenster. Das Raster greift an den <b>Kanten</b> eines Elements (Ecke oben links beim Verschieben, gezogene Kante beim Größe ziehen).</p>
           <h3>Hilfslinien</h3>
           <div class="wahl" id="einst-guides">
             <button data-guides="an" aria-pressed="true">Hilfslinien an</button>
@@ -1146,7 +1146,7 @@
         <input id="raster-schritt" type="range" min="0" max="100" step="1" value="24" aria-label="Schrittweite in Pixeln">
         <input id="raster-zahl" type="number" min="0" max="100" step="1" value="24" aria-label="Schrittweite in Pixeln">
       </div>
-      <div class="hinweis">Vorgabe 24 px (Punktabstand). 0 = frei. Gilt nur für dieses Fenster.</div>
+      <div class="hinweis">Vorgabe 24 px (Punktabstand). 0 = frei. Schrittweite gilt für das Brett, An/Aus nur hier.</div>
     </div>
 
     <div id="toast" role="status" aria-live="polite"></div>
@@ -1160,8 +1160,8 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "3.00";
-  var FASSUNG_DATUM = "2026-09-10";
+  var FASSUNG = "3.01";
+  var FASSUNG_DATUM = "2026-09-11";
 
   /* ============================ Kleine Helfer ============================ */
   var $ = function (id) { return document.getElementById(id); };
@@ -1327,8 +1327,10 @@
     toast("Das Brett ist eingefroren — erst oben rechts auftauen.");
     return true;
   }
-  // Vorgabe 24 = Punktabstand des Hintergrunds (applyView). Schrittweite je Betrachter
-  // einstellbar, 0 bis 100 px; 0 heisst frei. Beides liegt im Browser, nicht im Brett.
+  // Vorgabe 24 = Punktabstand des Hintergrunds (applyView). Schrittweite 0 bis 100 px, 0 heisst
+  // frei. An/Aus liegt je Betrachter im Browser; die SCHRITTWEITE liegt seit 3.01 im Brett
+  // (meta/board.raster), damit alle Betrachter und Claude (pinit-schreiben) dasselbe Raster nutzen.
+  // Ohne Speicher (Datei lokal) bleibt der Browser-Merker rb.rasterschritt der Rueckfall.
   var RASTER_VORGABE = 24, RASTER_MAX = 100;
   // Mausrad (2.29, Issue #3, Figma-Regel): der Browser verraet nie, ob Maus oder Touchpad —
   // darum gilt fuer beide dieselbe Regel: Rad schiebt (Touchpad in alle Richtungen), Strg+Rad
@@ -2191,7 +2193,8 @@
   function dropDoc(coll, id) { if (db) track(db.doc(coll + "/" + id).delete()); }
   // meta/board traegt title UND frozen — set() ersetzt das ganze Dokument, also immer beide.
   // Seit 2.14 auch `theme` (system|light|dark). set() ersetzt das Dokument: IMMER alle drei.
-  function putBoard(t, f, th) { if (db) track(db.doc("meta/board").set({ title: t, frozen: !!f, theme: themeLesen(th) })); }
+  // Seit 3.01 auch `raster` (Schrittweite, 0 = frei). set() ersetzt das Dokument: IMMER alle vier.
+  function putBoard(t, f, th) { if (db) track(db.doc("meta/board").set({ title: t, frozen: !!f, theme: themeLesen(th), raster: RASTER })); }
   function putTitle(t) { putBoard(t, frozen, boardTheme); }
 
   /* ============================ Geometrie ============================ */
@@ -3961,10 +3964,14 @@
     rasterFeld.hidden = !offen;
     $("z-raster").setAttribute("aria-expanded", offen ? "true" : "false");
   }
-  function rasterSchrittSetzen(v) {
-    RASTER = rasterLesen(v);
-    store("rb.rasterschritt", String(RASTER));
+  // schreiben = true: ins Brett (meta/board.raster) — der Schieberegler ruft es erst beim Loslassen.
+  function rasterSchrittSetzen(v, schreiben) {
+    var neu = rasterLesen(v);
+    if (schreiben && db && neu !== RASTER && gesperrt()) { rasterAnzeigen(); return; }
+    RASTER = neu;
+    if (!db) store("rb.rasterschritt", String(RASTER));
     rasterAnzeigen();
+    if (schreiben && db) putBoard(titleEl.value, frozen, boardTheme);
   }
   rasterAnzeigen();
   $("z-raster").addEventListener("click", function () { rasterFeldZeigen(rasterFeld.hidden); });
@@ -3974,8 +3981,9 @@
     rasterAnzeigen();
     toast(raster ? "Raster an: Elemente rasten auf " + RASTER + " px ein." : "Raster aus.");
   });
-  $("raster-schritt").addEventListener("input", function () { rasterSchrittSetzen(this.value); });
-  $("raster-zahl").addEventListener("change", function () { rasterSchrittSetzen(this.value); });
+  $("raster-schritt").addEventListener("input", function () { rasterSchrittSetzen(this.value, false); });
+  $("raster-schritt").addEventListener("change", function () { rasterSchrittSetzen(this.value, true); });
+  $("raster-zahl").addEventListener("change", function () { rasterSchrittSetzen(this.value, true); });
   // Tasten im Feld gehoeren dem Feld, nicht dem Brett (sonst schaltet "1" das Werkzeug).
   rasterFeld.addEventListener("keydown", function (ev) {
     ev.stopPropagation();
@@ -4617,7 +4625,7 @@
   // Das ganze Brett als JSON mit den ECHTEN Feldnamen — fuer die Uebergabe (Vorlage) und
   // fuer den eingefrorenen Stand (Ablage).
   function brettAlsJSON() {
-    var out = { meta: { board: { title: titleEl.value, frozen: frozen, theme: boardTheme } }, fassung: FASSUNG, sheets: {}, nodes: {}, edges: {} };
+    var out = { meta: { board: { title: titleEl.value, frozen: frozen, theme: boardTheme, raster: RASTER } }, fassung: FASSUNG, sheets: {}, nodes: {}, edges: {} };
     var reiter = echteReiter();
     reiter.forEach(function (s, i) {
       if (s.id === HOME && !sheets.size) return;   // impliziter Reiter hat kein Dokument
@@ -4900,6 +4908,9 @@
         toast(f ? "Dieses Brett wurde eingefroren." : "Dieses Brett wurde aufgetaut.");
       }
       if (themeLesen(v.theme) !== boardTheme) themeAnwenden(v.theme);
+      // Raster-Schrittweite (3.01): steht sie im Brett, gilt sie fuer alle; ein altes Brett ohne
+      // das Feld behaelt den Browser-Merker, bis jemand die Schrittweite einmal setzt.
+      if (v.raster !== undefined && isFinite(+v.raster) && rasterLesen(v.raster) !== RASTER) { RASTER = rasterLesen(v.raster); rasterAnzeigen(); }
     }, function (e) {
       syncGestorben("Titel", e.code);
     });

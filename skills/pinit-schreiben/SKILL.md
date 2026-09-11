@@ -11,9 +11,14 @@ Artifact-Datenbank. Du schreibst mit dem Artifact-Werkzeug, `action: "write_db"`
 ist live. Es gibt **kein Rückgängig**.
 
 ## 0. Bevor du schreibst
-0. **Eingefroren?** `read_db get` auf `meta/board`. Steht dort `frozen: true`, **schreibe nichts**
+0. **Eingefroren? Und welches Raster?** `read_db get` auf `meta/board`. Steht dort `frozen: true`, **schreibe nichts**
    und sag dem Nutzer: „Das Brett ist eingefroren. Zum Ändern oben rechts auftauen.“ Das gilt
    auch für Notizen und für `update`. Keine Ausnahme, kein Nachfragen ob trotzdem.
+   **Aus demselben Dokument das Raster merken:** `raster` (seit 3.01, Schrittweite in Brett-Pixeln,
+   Vorgabe 24 wenn das Feld fehlt, 0 = frei). Jedes `x`, `y`, `w`, `h`, das du anlegst oder
+   änderst, muss ein Vielfaches davon sein (bei 0: nichts runden). Das ist die Schrittweite, die der
+   Nutzer unten rechts am Knopf „Raster“ eingestellt hat — so landen deine Elemente auf denselben
+   Linien wie seine.
 1. **URL**: aus dem Aufruf, aus der Projekt-`CLAUDE.md`, sonst den Nutzer fragen. Nie die
    Vorlage-URL beschreiben (hat keine Datenbank; `write_db` schlägt fehl oder läuft ins
    Leere).
@@ -58,8 +63,8 @@ ist live. Es gibt **kein Rückgängig**.
   Zeilenzahl; beim Anlegen weglassen (die Tabelle teilt sich den Kasten dann gleichmäßig auf).
   Neue Elemente aus einer Skizze bekommen `status: "offen"`; was Claude gebaut hat, setzt er
   danach per `update` auf `fertig` und trägt in `link` die Datei ein.
-- `meta/board`: `title` · `frozen` · `theme` (system|light|dark, seit 2.14) — **immer alle drei Felder zusammen** schreiben (`set` ersetzt das
-  Dokument); `frozen` nur ändern, wenn der Nutzer ausdrücklich einfrieren/auftauen will.
+- `meta/board`: `title` · `frozen` · `theme` (system|light|dark, seit 2.14) · `raster` (Schrittweite in px, seit 3.01, 0 = frei) — **immer alle vier Felder zusammen** schreiben (`set` ersetzt das
+  Dokument); `frozen` nur ändern, wenn der Nutzer ausdrücklich einfrieren/auftauen will; `raster` nur, wenn er die Schrittweite ausdrücklich ändern will.
 
 **Kennungen** wie die Seite: `Date.now().toString(36) + "-" + 5 Zufallszeichen`, z. B.
 `mtr7863e-ucfdt`. Für Reiter sind sprechende Kennungen erlaubt (`onboarding`), aber
@@ -108,7 +113,10 @@ Menschen ordnen später um; das Ziel ist **nicht überlappend und lesbar**, nich
 - **Datenmodell:** je Entität ein `entity` im Raster 3 Spalten (Abstand 60 px), Beziehungen als
   Pfeile `ends: "none"` mit `fromLabel`/`toLabel` (`1`/`n`, `n`/`m`, `1`/`1`); Vererbung als Pfeil
   `head: "triangle"` zur Oberklasse, ohne Label.
-- **Raster:** Positionen und Größen auf Vielfache von 8 legen — so sieht es aus wie von Hand gesetzt.
+- **Raster (Pflicht):** Positionen und Größen auf Vielfache der Schrittweite aus `meta/board.raster`
+  legen (Vorgabe 24; 0 = frei, dann Vielfache von 8). Alle Abstände oben (240, 130, 24, 60, 80, 16, 12)
+  sind Richtwerte — auf das Raster aufrunden. Vor dem Schreiben einmal gegenprüfen: jedes `x`, `y`,
+  `w`, `h` durch die Schrittweite teilbar? Dann erst `write_db`.
 - **Ablauf:** `start` links oben, `end` rechts unten, dazwischen Schritte/Entscheidungen.
 
 ## 4. Mermaid als Eingabe

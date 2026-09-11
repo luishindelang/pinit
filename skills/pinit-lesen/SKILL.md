@@ -52,7 +52,7 @@ weiterblättern — sonst fehlt Inhalt.
   Datenmodell | flow = Ablauf) — bestimmt, wie der Reiter ausgewertet wird (s. unten) · `group`
   (seit 2.27, Gruppenname oder ""): Reiter mit Gruppe in der Ausgabe unter einer Zwischenüberschrift
   „Gruppe <Name>“ zusammenfassen, Reihenfolge wie in der Leiste (Gruppe an der Stelle ihres ersten Mitglieds).
-- `meta/board`: `title` · `frozen` · `theme` (system|light|dark, Darstellung fürs ganze Brett, seit 2.14) — `frozen` true = **eingefrorener Stand**: im Kopf der Datei vermerken
+- `meta/board`: `title` · `frozen` · `theme` (system|light|dark, Darstellung fürs ganze Brett, seit 2.14) · `raster` (Schrittweite in px fürs ganze Brett, seit 3.01; fehlt = 24) — `frozen` true = **eingefrorener Stand**: im Kopf der Datei vermerken
   „Stand eingefroren“ — das ist die verbindliche Fassung, auf die gebaut wird).
 - Je Element außerdem `link` (Datei/URL/Ticket) und `status` ("" | offen | arbeit | fertig); `hidden: true` (2.50) heißt ausgeblendet — im Markdown mit „(ausgeblendet)“ kennzeichnen, im Spezifikations-Modus weglassen.
 
