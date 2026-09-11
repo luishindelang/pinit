@@ -375,6 +375,9 @@
     text-anchor: middle; dominant-baseline: middle; paint-order: stroke;
     stroke: var(--ground); stroke-width: 4px; stroke-linejoin: round;
   }
+  /* 3.05: der Text eines hervorgehobenen Pfeils (gewaehlt oder Nachbar der Auswahl) wird mit
+     hervorgehoben — groesser, fett, in der Akzentfarbe (Luis, 2026-09-11). */
+  .wire-svg g.wire.sel text.elabel, .wire-svg g.wire.nah text.elabel { font-size: 13px; font-weight: 600; fill: var(--accent); }
 
   .node {
     position: absolute;
@@ -1160,7 +1163,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "3.04";
+  var FASSUNG = "3.05";
   var FASSUNG_DATUM = "2026-09-11";
 
   /* ============================ Kleine Helfer ============================ */
