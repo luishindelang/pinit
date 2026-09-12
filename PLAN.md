@@ -89,6 +89,7 @@ Abgeschlossenes wandert nach `artefakte/`, damit diese Datei schlank bleibt (sie
 | 2.1 | 2026-09-07 | Umschalt+Klick nimmt Elemente in die Mehrfachauswahl auf oder heraus; Umschalt beim Rahmenziehen ergaenzt |
 | 2.2 | 2026-09-07 | Pfeile gehoeren zur Mehrfachauswahl: der Rahmen nimmt einen Pfeil, wenn er seine Linie beruehrt; Umschalt+Klick auf Pfeile; Entf loescht Kaesten und Pfeile zusammen |
 | 2.3 | 2026-09-07 | **Tabelle** als fuenfte Bauart (`kind: "table"`, Ueberschrift + Kopfzeile, neues Feld `cells`, Zellen per Doppelklick, Tab springt, Zeilen/Spalten im Inspektor) und **Stichpunkte** in jedem Element (Zeile mit `- ` wird als Punkt gezeigt, gespeichert bleibt roher Text). Nebenbei gefunden und behoben: Fokus-Zeitgeber loeschten fremde Editier-Merker |
+| 3.07 | 2026-09-12 | Status-Ampel: klares Rot, Gelb, Grün (eigene Token) — offen und in Arbeit waren kaum zu unterscheiden |
 | 3.06 | 2026-09-12 | Nachbarschaft: was in einem gehobenen Element liegt, kommt mit nach vorn (vorher verschwand der Inhalt eines gewählten Rahmens hinter dem Rahmen) |
 | 3.05 | 2026-09-11 | Pfeiltext eines hervorgehobenen Pfeils (gewählt oder Nachbar) größer, fett und in Akzentfarbe |
 | 3.04 | 2026-09-11 | Kopfzeile zeigt nur noch „v3.04“ — das feste Wort „smartvillage“ (seit 2.20) ist raus |

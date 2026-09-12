@@ -21,7 +21,10 @@
     --shadow: 0 1px 2px rgba(23,34,48,.10), 0 8px 24px rgba(23,34,48,.08);
     --shadow-sm: 0 1px 2px rgba(23,34,48,.12);
     --ok: #3f9a6a;      /* Statuspunkt „fertig“, Speicher-Punkt „gespeichert“ */
-    --warn: #d3ab5c;    /* Statuspunkt „in Arbeit“ */
+    --warn: #d3ab5c;    /* Hinweisfarbe */
+    /* Status-Ampel je Element (3.07): klares Rot, klares Gelb, klares Grün — vorher war „offen“
+       das gedeckte --danger und „in Arbeit“ ein Orange, kaum zu unterscheiden (Luis, 2026-09-12). */
+    --st-offen: #e03434; --st-arbeit: #f2c218; --st-fertig: #2fb36a;
     /* Code-Farben (2.44): Kommentar, Zeichenkette, JSON-Schlüssel, Zahl, Schlüsselwort */
     --c-com: #6a8a5a; --c-str: #b45309; --c-key: #0e7490; --c-num: #7c3aed; --c-kw: #1d4ed8;
 
@@ -317,9 +320,9 @@
     position: absolute; top: 4px; left: 4px; width: 9px; height: 9px; border-radius: 50%;
     border: 1.5px solid var(--surface); pointer-events: none;
   }
-  .node .status-dot.offen { background: var(--danger); }
-  .node .status-dot.arbeit { background: var(--warn); }
-  .node .status-dot.fertig { background: var(--ok); }
+  .node .status-dot.offen { background: var(--st-offen); }
+  .node .status-dot.arbeit { background: var(--st-arbeit); }
+  .node .status-dot.fertig { background: var(--st-fertig); }
   .tab-add {
     padding: 8px 10px 7px; color: var(--ink-3);
     border-bottom: 2px solid transparent; border-radius: 0; flex: none;
@@ -1163,7 +1166,7 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "3.06";
+  var FASSUNG = "3.07";
   var FASSUNG_DATUM = "2026-09-12";
 
   /* ============================ Kleine Helfer ============================ */
