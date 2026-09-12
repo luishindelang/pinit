@@ -1163,8 +1163,8 @@
   /* ============================ Modell ============================ */
   // Fassung: steht sichtbar in der Kopfzeile, damit man ohne Nachfragen sieht,
   // ob ein Brett hinterherhaengt. Bei jeder Aenderung an dieser Datei hochzaehlen.
-  var FASSUNG = "3.05";
-  var FASSUNG_DATUM = "2026-09-11";
+  var FASSUNG = "3.06";
+  var FASSUNG_DATUM = "2026-09-12";
 
   /* ============================ Kleine Helfer ============================ */
   var $ = function (id) { return document.getElementById(id); };
@@ -2531,7 +2531,29 @@
     });
     out.an = out.pfeile.size > 0;
     out.hoch = topZ();
+    // 3.06: was ganz IN einem gehobenen Element und davor liegt (Mitnehmen-Regel), kommt mit nach
+    // vorn — sonst rutschte der Inhalt eines gewaehlten Rahmens hinter den Rahmen. Der Abstand zum
+    // Traeger bleibt erhalten (mindestens 1), damit Verschachtelungen ihre Reihenfolge behalten.
+    out.innen = new Map();
+    if (out.an) {
+      var traeger = [sel.id]; out.knoten.forEach(function (k) { traeger.push(k); });
+      traeger.forEach(function (tid) {
+        var t = nodes.get(tid); if (!t) return;
+        mitnehmer(tid, t).forEach(function (k) {
+          if (k.id === sel.id || out.knoten.has(k.id)) return;
+          var m = nodes.get(k.id), d = Math.max(1, (m.z || 0) - (t.z || 0));
+          if (!out.innen.has(k.id) || out.innen.get(k.id) < d) out.innen.set(k.id, d);
+        });
+      });
+    }
     return out;
+  }
+  // Die Ebene eines Elements beim Zeichnen: gehoben (gewaehlt/Nachbar), mitgehoben (innen) oder sein z.
+  function ebeneVon(id, n, nah) {
+    if (!nah.an) return n.z || 0;
+    if ((sel && sel.type === "node" && sel.id === id) || nah.knoten.has(id)) return nah.hoch + 2;
+    if (nah.innen.has(id)) return nah.hoch + 2 + nah.innen.get(id);
+    return n.z || 0;
   }
 
   // Fuellung und Rand eines Elements: Raute als SVG-Polygon, Beschriftung ohne Hintergrund,
@@ -2704,8 +2726,7 @@
     el.style.width = n.w + "px";
     el.style.height = n.h + "px";
     // Gewaehltes Element und seine Nachbarn liegen vorn (2.37), ihre Pfeile eine Stufe darunter.
-    var ebene = nah.an && (istSel || nah.knoten.has(id)) ? nah.hoch + 2 : (n.z || 0);
-    el.style.zIndex = String(ebeneZ(ebene));
+    el.style.zIndex = String(ebeneZ(ebeneVon(id, n, nah)));
     knotenFarben(el, n);
     knotenInhalt(el, n);
     markenSetzen(el, n);
@@ -2827,7 +2848,7 @@
       // Der Pfeil liegt auf der Ebene des tieferen seiner beiden Kästen:
       // damit deckt eine nach hinten gelegte Notiz ihn nicht mehr zu, und
       // die verbundenen Kästen bleiben trotzdem über ihm.
-      pfeilEbene(istNah ? nah.hoch + 1 : Math.min(a.z || 0, b.z || 0)).appendChild(g);
+      pfeilEbene(istNah ? nah.hoch + 1 : Math.min(ebeneVon(e.from, a, nah), ebeneVon(e.to, b, nah))).appendChild(g);
     });
 
     // Vorschau beim Verbinden
